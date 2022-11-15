@@ -1,0 +1,8 @@
+{:deps {org.clojure/clojure {:mvn/version "1.11.1"}
+
+        poly/external-test-runner-cli {:local/root "../../bases/external-test-runner-cli"}
+        poly/external-test-runner {:local/root "../../components/external-test-runner"}
+        poly/util {:local/root "../../components/util"}}
+
+ :aliases {:test {:extra-paths []
+                  :extra-deps  {}}}}
