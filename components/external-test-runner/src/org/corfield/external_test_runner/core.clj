@@ -74,10 +74,10 @@
         path-sep       (System/getProperty "path.separator")
         my-runner-ns   "org.corfield.external-test-runner-cli.main"
         colorizer-ns   "org.corfield.util.interface.color"
-        java-opts      (System/getenv "POLY_TEST_JAVA_OPTS")]
+        java-opts      (System/getenv "POLY_TEST_JVM_OPTS")]
 
     (reify test-runner-contract/TestRunner
-      (test-runner-name [_] "Polylith external clojure.test runner")
+      (test-runner-name [_] "Polylith org.corfield.external-test-runner")
 
       (test-sources-present? [_] @test-sources-present*)
 
