@@ -1,8 +1,8 @@
 {:deps {org.clojure/clojure {:mvn/version "1.11.1"}
 
-        polylith-external-test-runner.bases/external-test-runner-cli {:local/root "bases/external-test-runner-cli"}
-        polylith-external-test-runner.components/external-test-runner {:local/root "components/external-test-runner"}
-        polylith-external-test-runner.components/util {:local/root "components/util"}}
+        polylith-external-test-runner.bases/external-test-runner-cli {:local/root "../../bases/external-test-runner-cli"}
+        polylith-external-test-runner.components/external-test-runner {:local/root "../../components/external-test-runner"}
+        polylith-external-test-runner.components/util {:local/root "../../components/util"}}
 
  :aliases {:test {:extra-paths []
                   :extra-deps  {}}}}
