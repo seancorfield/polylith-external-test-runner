@@ -1,13 +1,13 @@
 {:aliases
  {:dev {:extra-paths ["development/src"]
-        :extra-deps {poly/external-test-runner-cli {:local/root "bases/external-test-runner-cli"}
-                     poly/external-test-runner {:local/root "components/external-test-runner"}
-                     poly/util {:local/root "components/util"}
+        :extra-deps {polylith-external-test-runner.bases/external-test-runner-cli {:local/root "bases/external-test-runner-cli"}
+                     polylith-external-test-runner.components/external-test-runner {:local/root "components/external-test-runner"}
+                     polylith-external-test-runner.components/util {:local/root "components/util"}
                      org.clojure/clojure {:mvn/version "1.11.1"}}}
   :test {:extra-paths []
          :extra-deps {}}
   :poly {:extra-deps {io.github.seancorfield/polylith
                       {;; external test runner branch:
-                       :git/sha "9cbdc21f4be9307289242237551698191e05b4dd"
+                       :git/sha "96d84ba37f8c41a6c212d9f8958b0a0ca0632d35"
                        :deps/root "projects/poly"}}
          :main-opts ["-m" "polylith.clj.core.poly-cli.core"]}}}
