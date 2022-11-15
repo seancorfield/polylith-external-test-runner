@@ -1,9 +1,9 @@
 (ns org.corfield.external-test-runner.core
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
-            [org.corfield.test-runner-contract.interface :as test-runner-contract]
-            [org.corfield.util.interface.color :as color]
-            [org.corfield.util.interface.str :as str-util])
+            [polylith.clj.core.test-runner-contract.interface :as test-runner-contract]
+            [polylith.clj.core.util.interface.color :as color]
+            [polylith.clj.core.util.interface.str :as str-util])
   (:import (java.lang ProcessBuilder ProcessBuilder$Redirect)
            (java.util List)))
 
