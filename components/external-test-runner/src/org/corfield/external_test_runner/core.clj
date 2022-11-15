@@ -74,7 +74,8 @@
         path-sep       (System/getProperty "path.separator")
         my-runner-ns   "org.corfield.external-test-runner-cli.main"
         colorizer-ns   "org.corfield.util.interface.color"
-        java-opts      (System/getenv "POLY_TEST_JVM_OPTS")]
+        java-opts      (or (System/getenv "POLY_TEST_JVM_OPTS")
+                           (System/getProperty "poly.test.jvm.opts"))]
 
     (reify test-runner-contract/TestRunner
       (test-runner-name [_] "Polylith org.corfield.external-test-runner")
