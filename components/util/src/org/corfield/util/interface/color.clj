@@ -2,7 +2,7 @@
   "Copied from Polylith so the subprocess can have basic colorization.
 
   https://github.com/polyfy/polylith/blob/master/components/util/src/polylith/clj/core/util/interface/color.clj"
-  (:require [polylith.clj.core.util.colorizer :as colorizer]))
+  (:require [org.corfield.util.colorizer :as colorizer]))
 
 (def none "none")
 
