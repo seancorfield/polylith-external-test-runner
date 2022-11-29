@@ -6,17 +6,17 @@ Avoids classloader, daemon thread, and memory usage issues
 by running tests in a subprocess with only Clojure itself as a
 dependency.
 
-> Note: this currently requires that you use a fork of Polylith that supports external test runners:
+> Note: this currently requires that you use a Pull Request on Polylith that supports external test runners:
 
 ```clojure
-io.github.seancorfield/polylith
-{:git/sha "96d84ba37f8c41a6c212d9f8958b0a0ca0632d35"
+io.github.polyfy/polylith
+{:git/sha "42d327e8211f0723d8c1f3cea3a4d03c847ccc9b"
  :deps/root "projects/poly"}
 ```
 
 ## usage:
 
-Ensure you are using the fork of Polylith that supports
+Ensure you are using that PR on Polylith that supports
 external test runners, shown above.
 
 Add the following dependency to your `:poly` alias to
@@ -39,6 +39,37 @@ to run all of your projects' tests in subprocesses:
 
 Alternatively, to run just specific projects in subprocesses,
 add that `:create-test-runner` entry to those specific projects.
+
+### Finding Java
+
+The test runner checks the `JAVA_CMD` environment variable and will use
+that value if set, else it checks the `JAVA_HOME` environment variable
+and will use the value `${JAVA_HOME}/bin/java` is that is set, else it
+assumes `java` is on your classpath and can be used as-is.
+
+### Passing JVM Options
+
+Since the tests are executed in a `java` subprocess, you may need to
+provide JVM options to control how it runs. You can specify the JVM
+options for the subprocess in two ways:
+* via the `POLY_TEST_JVM_OPTS` environment variable,
+* via the `poly.test.jvm.opts` JVM property.
+
+The former can be set in your shell process, for the `poly test` command.
+The latter can be set in the `:poly` alias via:
+```clojure
+  :jvm-opts ["-Dpoly.test.jvm.opts=..."]
+```
+
+The value of the environment variables or the JVM property should either be:
+* a space-separated list of all the JVM options you need,
+* a Clojure keyword that will be looked up as an alias in your workspace-level `deps.edn` file.
+
+The latter allows multiple options to be specified more easily, and also
+allows for other aliases to be used in those vectors of options, which are
+looked up recursively (a similar ability has been [proposed for `tools.deps.alpha`](https://clojure.atlassian.net/browse/TDEPS-184)).
+See this project's [`deps.edn` file](https://github.com/seancorfield/polylith-external-test-runner/blob/main/deps.edn)
+for an example (which is used in the tests for this project).
 
 ## License & Copyright
 

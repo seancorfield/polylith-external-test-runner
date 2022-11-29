@@ -1,6 +1,7 @@
 (ns org.corfield.external-test-runner.core
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
+            [clojure.tools.deps.alpha :as deps]
             [polylith.clj.core.test-runner-contract.interface :as test-runner-contract]
             [polylith.clj.core.util.interface.color :as color]
             [polylith.clj.core.util.interface.str :as str-util])
@@ -65,6 +66,21 @@
       java-cmd
       "java")))
 
+(defn- get-project-aliases []
+  (let [edn-fn (juxt :root-edn :project-edn)]
+    (-> (deps/find-edn-maps)
+        (edn-fn)
+        (deps/merge-edns)
+        :aliases)))
+
+(defn- chase-opts-key
+  "Given an aliases set and a keyword k, return a flattened vector of
+  options for that k, resolving recursively if needed, or nil."
+  [aliases k]
+  (let [opts-coll (get aliases k)]
+    (when (seq opts-coll)
+      (into [] (mapcat #(if (string? %) [%] (chase-opts-key aliases %))) opts-coll))))
+
 (defn create
   [{:keys [workspace project changes #_test-settings]}]
   (let [{:keys [bases components]} workspace
@@ -83,7 +99,12 @@
         my-runner-ns   "org.corfield.external-test-runner-cli.main"
         colorizer-ns   "org.corfield.util.interface.color"
         java-opts      (or (System/getenv "POLY_TEST_JVM_OPTS")
-                           (System/getProperty "poly.test.jvm.opts"))]
+                           (System/getProperty "poly.test.jvm.opts"))
+        opt-key        (when (and java-opts (re-find #"^:[-a-zA-Z0-9]+$" java-opts))
+                         (keyword (subs java-opts 1)))
+        java-opts      (if opt-key
+                         (into [] (remove nil?) (chase-opts-key (get-project-aliases) opt-key))
+                         (str/split java-opts #" "))]
 
     (reify test-runner-contract/TestRunner
       (test-runner-name [_] "Polylith org.corfield.external-test-runner")
@@ -112,7 +133,7 @@
                                      (conj (str teardown-fn)))
                          java-cmd  (-> (cond-> [(find-java)]
                                          java-opts
-                                         (into (str/split java-opts #" ")))
+                                         (into java-opts))
                                        (into ["-cp" classpath
                                               "clojure.main" "-m" process-ns])
                                        (into test-args))

@@ -5,9 +5,17 @@
                      polylith-external-test-runner.components/util {:local/root "components/util"}
                      org.clojure/clojure {:mvn/version "1.11.1"}}}
   :test {:extra-paths []
-         :extra-deps {}}
-  :poly {:extra-deps {io.github.seancorfield/polylith
-                      {;; external test runner branch:
-                       :git/sha "96d84ba37f8c41a6c212d9f8958b0a0ca0632d35"
-                       :deps/root "projects/poly"}}
+         :extra-deps {io.github.polyfy/polylith
+                      ;; PR for Issue #260:
+                      {:git/sha "42d327e8211f0723d8c1f3cea3a4d03c847ccc9b"
+                       :deps/root "projects/poly"}}}
+  :example-opts [:sub-opts "-Dexample=opts"]
+  :sub-opts ["-Dsub.example=more.opts"]
+  :poly {:extra-deps {io.github.polyfy/polylith
+                      ;; PR for Issue #260:
+                      {:git/sha "42d327e8211f0723d8c1f3cea3a4d03c847ccc9b"
+                       :deps/root "projects/poly"}
+                      io.github.seancorfield/polylith-external-test-runner
+                      {:local/root "projects/runner"}}
+         :jvm-opts ["-Dpoly.test.jvm.opts=:example-opts"]
          :main-opts ["-m" "polylith.clj.core.poly-cli.core"]}}}
