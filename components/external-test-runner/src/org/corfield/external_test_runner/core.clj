@@ -57,6 +57,14 @@
         (.getFile)
         (str/replace (str file-sep ns-path) ""))))
 
+(defn- find-java []
+  (let [java-cmd (or (System/getenv "JAVA_CMD")
+                     (when-let [home (System/getenv "JAVA_HOME")]
+                       (str home "/bin/java")))]
+    (if (and java-cmd (.exists (io/file java-cmd)))
+      java-cmd
+      "java")))
+
 (defn create
   [{:keys [workspace project changes #_test-settings]}]
   (let [{:keys [bases components]} workspace
@@ -102,7 +110,7 @@
                                      (into (deref test-nses*))
                                      teardown-fn
                                      (conj (str teardown-fn)))
-                         java-cmd  (-> (cond-> ["java"]
+                         java-cmd  (-> (cond-> [(find-java)]
                                          java-opts
                                          (into (str/split java-opts #" ")))
                                        (into ["-cp" classpath
