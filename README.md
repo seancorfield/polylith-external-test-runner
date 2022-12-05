@@ -10,7 +10,7 @@ dependency.
 
 ```clojure
 io.github.polyfy/polylith
-{:git/sha "42d327e8211f0723d8c1f3cea3a4d03c847ccc9b"
+{:git/sha "ca7c38eb2df7a489202742ac28c0cfe9ef9ae9d2"
  :deps/root "projects/poly"}
 ```
 
@@ -24,7 +24,7 @@ make this test-runner available:
 
 ```clojure
 io.github.seancorfield/polylith-external-test-runner
-{:git/sha "c9e78ca9269c9b922d262f827f60a38ecbfb7cbf"
+{:git/sha "3792b63c0c2c14a993db54d2aa56282754b2c256"
  :deps/root "projects/runner"}
 ```
 
