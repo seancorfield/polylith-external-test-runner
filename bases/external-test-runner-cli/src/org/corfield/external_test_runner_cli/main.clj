@@ -48,7 +48,7 @@
                   (catch Exception e
                     (.printStackTrace e)
                     (println (str (color/error color-mode "Couldn't run test statement")
-                                  " for the " (color/project color-mode project-name)
+                                  " for the " (color/project project-name color-mode)
                                   " project: " test-ns " " (color/error color-mode e)))))
                 result-str (str "Test results: " pass " passes, " fail " failures, " error " errors.")]
             (when (or (nil? error)
