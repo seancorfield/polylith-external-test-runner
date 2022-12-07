@@ -6,7 +6,7 @@ Avoids classloader, daemon thread, and memory usage issues
 by running tests in a subprocess with only Clojure itself as a
 dependency.
 
-> Note: this currently requires that you use a Pull Request on Polylith that supports external test runners:
+> Note: this currently requires that you use a git dependency for Polylith that supports external test runners:
 
 ```clojure
 io.github.polyfy/polylith
@@ -16,7 +16,7 @@ io.github.polyfy/polylith
 
 ## usage:
 
-Ensure you are using that PR on Polylith that supports
+Ensure you are using the git dependency for Polylith that supports
 external test runners, shown above.
 
 Add the following dependency to your `:poly` alias to
