@@ -6,25 +6,25 @@ Avoids classloader, daemon thread, and memory usage issues
 by running tests in a subprocess with only Clojure itself as a
 dependency.
 
-> Note: this currently requires that you use a git dependency for Polylith that supports external test runners:
+> Note: requires Polylith v0.2.17-alpha or later:
 
 ```clojure
 io.github.polyfy/polylith
-{:git/sha "ca7c38eb2df7a489202742ac28c0cfe9ef9ae9d2"
+{:git/tag "v0.2.17-alpha" :git/sha "a1581cc"
  :deps/root "projects/poly"}
 ```
 
-## usage:
+## Usage
 
-Ensure you are using the git dependency for Polylith that supports
-external test runners, shown above.
+Ensure you are using a recent version Polylith that supports
+external test runners, as shown above.
 
 Add the following dependency to your `:poly` alias to
 make this test-runner available:
 
 ```clojure
 io.github.seancorfield/polylith-external-test-runner
-{:git/sha "3792b63c0c2c14a993db54d2aa56282754b2c256"
+{:git/tag "v0.1.0" :git/sha "337f117"
  :deps/root "projects/runner"}
 ```
 
