@@ -1,7 +1,7 @@
 (ns org.corfield.external-test-runner.core
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
-            [clojure.tools.deps.alpha :as deps]
+            [clojure.tools.deps :as deps]
             [polylith.clj.core.test-runner-contract.interface :as test-runner-contract]
             [polylith.clj.core.util.interface.color :as color]
             [polylith.clj.core.util.interface.str :as str-util])

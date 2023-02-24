@@ -6,6 +6,6 @@
 
  :aliases {:test {:extra-paths []
                   :extra-deps  {io.github.polyfy/polylith
-                                ;; PR for Issue #260:
-                                {:git/sha "42d327e8211f0723d8c1f3cea3a4d03c847ccc9b"
+                                {:git/tag "v0.2.17-alpha"
+                                 :git/sha "a1581cc"
                                  :deps/root "projects/poly"}}}}}

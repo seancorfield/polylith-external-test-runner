@@ -73,7 +73,7 @@ for an example (which is used in the tests for this project).
 
 ## License & Copyright
 
-External test runner copyright (c) 2022, Sean Corfield,
+External test runner copyright (c) 2022-2023, Sean Corfield,
 Apache Source License 2.0.
 
 Colorizer and string util code copyright (c) 2020-2021, Joakim Tengstrand and others, Eclipse Public Licene 1.0.
