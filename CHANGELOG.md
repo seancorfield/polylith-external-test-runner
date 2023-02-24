@@ -1,6 +1,6 @@
 # Changes
 
-v0.2.0 -- 2023-02-23
+v0.2.0 f208856 -- 2023-02-23
 * Fix [#3](https://github.com/seancorfield/polylith-external-test-runner/issues/3) by switching to `tools.deps` and updating dependencies.
 
 v0.1.0 337f117 -- 2022-12-09
