@@ -104,7 +104,7 @@
                          (keyword (subs java-opts 1)))
         java-opts      (if opt-key
                          (into [] (remove nil?) (chase-opts-key (get-project-aliases) opt-key))
-                         (str/split java-opts #" "))]
+                         (when java-opts (str/split java-opts #" ")))]
 
     (reify test-runner-contract/TestRunner
       (test-runner-name [_] "Polylith org.corfield.external-test-runner")
