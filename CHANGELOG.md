@@ -1,6 +1,6 @@
 # Changes
 
-v0.3.0 -- 2023-10-28
+v0.3.0 9f6391a -- 2023-10-28
 * Fix [#4](https://github.com/seancorfield/polylith-external-test-runner/issues/4) by guarding `str/split` with `when java-opts`.
 
 v0.2.0 f208856 -- 2023-02-23
