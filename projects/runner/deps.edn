@@ -5,7 +5,4 @@
         polylith-external-test-runner.components/util {:local/root "../../components/util"}}
 
  :aliases {:test {:extra-paths []
-                  :extra-deps  {io.github.polyfy/polylith
-                                {:git/tag "v0.2.17-alpha"
-                                 :git/sha "a1581cc"
-                                 :deps/root "projects/poly"}}}}}
+                  :extra-deps  {polylith/clj-poly {:mvn/version "0.2.18"}}}}}

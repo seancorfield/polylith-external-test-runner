@@ -5,16 +5,10 @@
                      polylith-external-test-runner.components/util {:local/root "components/util"}
                      org.clojure/clojure {:mvn/version "1.11.1"}}}
   :test {:extra-paths []
-         :extra-deps {io.github.polyfy/polylith
-                      {:git/tag "v0.2.17-alpha"
-                       :git/sha "a1581cc"
-                       :deps/root "projects/poly"}}}
+         :extra-deps {polylith/clj-poly {:mvn/version "0.2.18"}}}
   :example-opts [:sub-opts "-Dexample=opts"]
   :sub-opts ["-Dsub.example=more.opts"]
-  :poly {:extra-deps {io.github.polyfy/polylith
-                      {:git/tag "v0.2.17-alpha"
-                       :git/sha "a1581cc"
-                       :deps/root "projects/poly"}
+  :poly {:extra-deps {polylith/clj-poly {:mvn/version "0.2.18"}
                       io.github.seancorfield/polylith-external-test-runner
                       {:local/root "projects/runner"}}
          :jvm-opts ["-Dpoly.test.jvm.opts=:example-opts"]

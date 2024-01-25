@@ -84,8 +84,11 @@
 (defn create
   [{:keys [workspace project changes #_test-settings]}]
   (let [{:keys [bases components]} workspace
-        {:keys [name namespaces paths]} project
-        {:keys [project-to-bricks-to-test project-to-projects-to-test]} changes
+        {:keys [name namespaces paths
+                bricks-to-test projects-to-test]} project
+        {:keys [project-to-bricks-to-test project-to-projects-to-test]
+         :or {project-to-bricks-to-test {name bricks-to-test}
+              project-to-projects-to-test {name projects-to-test}}} changes
 
         ;; TODO: if the project tests aren't to be run, we might further narrow this down
         test-sources-present* (delay (-> paths :test seq))

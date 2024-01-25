@@ -9,5 +9,13 @@
 
  :test {:create-test-runner [org.corfield.external-test-runner.interface/create]}
 
- :projects {"runner"      {:alias "r"}
-            "development" {:alias "dev"}}}
+ :projects {"runner"
+            {:alias "r"
+             :test
+             {:create-test-runner
+              [org.corfield.external-test-runner.interface/create]}}
+            "development"
+            {:alias "dev"
+             :test
+             {:create-test-runner
+              [org.corfield.external-test-runner.interface/create]}}}}

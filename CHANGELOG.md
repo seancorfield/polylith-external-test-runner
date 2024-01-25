@@ -1,5 +1,8 @@
 # Changes
 
+v0.4.0 in progress
+* Make the runner compatible with both Polylith 0.2.19 (in development) and 0.2.18/17.
+
 v0.3.0 9f6391a -- 2023-10-28
 * Fix [#4](https://github.com/seancorfield/polylith-external-test-runner/issues/4) by guarding `str/split` with `when java-opts`.
 

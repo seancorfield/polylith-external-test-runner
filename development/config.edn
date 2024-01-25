@@ -1,0 +1,4 @@
+{:alias "dev"
+ :test
+ {:create-test-runner
+  [org.corfield.external-test-runner.interface/create]}}

@@ -12,6 +12,10 @@ dependency.
 io.github.polyfy/polylith
 {:git/tag "v0.2.17-alpha" :git/sha "a1581cc"
  :deps/root "projects/poly"}
+;; or:
+polylith/clj-poly {:mvn/version "0.2.18"}
+;; or:
+polylith/clj-poly {:mvn/version "0.2.19-SNAPSHOT"}
 ```
 
 ## Usage
@@ -39,6 +43,8 @@ to run all of your projects' tests in subprocesses:
 
 Alternatively, to run just specific projects in subprocesses,
 add that `:create-test-runner` entry to those specific projects.
+
+> Note: in the current 0.2.19-SNAPSHOT version of Polylith, the global configuration does not work and you'll have to add the `:create-test-runner` entry to each project's `:test` configuration (in `projects/<project>/config.edn`).
 
 ### Finding Java
 
