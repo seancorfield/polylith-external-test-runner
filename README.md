@@ -28,7 +28,7 @@ make this test-runner available:
 
 ```clojure
 io.github.seancorfield/polylith-external-test-runner
-{:git/tag "v0.3.0" :git/sha "9f6391a"
+{:git/tag "v0.4.0" :git/sha "eb954fe"
  :deps/root "projects/runner"}
 ```
 
