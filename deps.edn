@@ -5,10 +5,10 @@
                      polylith-external-test-runner.components/util {:local/root "components/util"}
                      org.clojure/clojure {:mvn/version "1.11.1"}}}
   :test {:extra-paths []
-         :extra-deps {polylith/clj-poly {:mvn/version "0.2.18"}}}
+         :extra-deps {polylith/clj-poly {:mvn/version "0.2.19-SNAPSHOT"}}}
   :example-opts [:sub-opts "-Dexample=opts"]
   :sub-opts ["-Dsub.example=more.opts"]
-  :poly {:extra-deps {polylith/clj-poly {:mvn/version "0.2.18"}
+  :poly {:extra-deps {polylith/clj-poly {:mvn/version "0.2.19-SNAPSHOT"}
                       io.github.seancorfield/polylith-external-test-runner
                       {:local/root "projects/runner"}}
          :jvm-opts ["-Dpoly.test.jvm.opts=:example-opts"]

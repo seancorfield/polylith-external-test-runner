@@ -1,6 +1,6 @@
 # Changes
 
-v0.4.0 in progress
+v0.4.0 -- 2024-01-25
 * Make the runner compatible with both Polylith 0.2.19 (in development) and 0.2.18/17.
 
 v0.3.0 9f6391a -- 2023-10-28
