@@ -1,4 +1,7 @@
+*.class
+*.jar
 .calva/output-window/output.calva-repl
+.calva/repl.calva-repl
 .clj-kondo/.cache
 .cpcache/
 .lein-deps-sum
@@ -9,8 +12,6 @@
 .nrepl-port
 .portal/vs-code.edn
 .socket-repl-port
-*.class
-*.jar
 /checkouts/
 /classes/
 /lib/
