@@ -1,5 +1,6 @@
 (ns org.corfield.external-test-runner.core
-  (:require [clojure.java.io :as io]
+  (:require [clojure.edn :as edn]
+            [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.test :refer [is]]
             [clojure.tools.deps :as deps]
@@ -106,7 +107,11 @@
 
 (defn create
   [{:keys [workspace project changes test-settings]}]
-  (let [options (:org.corfield/external-test-runner test-settings)
+  (let [env-opts (-> (System/getenv "ORG_CORFIELD_EXTERNAL_TEST_RUNNER")
+                     (or "{}")
+                     (edn/read-string))
+        options (merge (:org.corfield/external-test-runner test-settings)
+                       env-opts)
         {:keys [bases components]} workspace
         {:keys [name namespaces paths
                 bricks-to-test projects-to-test]} project
