@@ -16,4 +16,4 @@
             "development"
             {:alias "dev"
              :test
-             {:org.corfield/external-test-runner {}}}}}
+             {:org.corfield/external-test-runner {:focus [:foo :bar]}}}}}

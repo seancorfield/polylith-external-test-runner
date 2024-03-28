@@ -1,5 +1,6 @@
 (ns org.corfield.external-test-runner-cli.main
-  (:require [clojure.string :as str]
+  (:require [clojure.edn :as edn]
+            [clojure.string :as str]
             [clojure.test :as test]
             [org.corfield.util.interface.color :as color]))
 
@@ -21,12 +22,21 @@
             false))))
     true))
 
+(defn- filter-vars! [ns filter-fn] #_(println "filtering" ns))
+
+(defn- restore-vars! [ns] #_(println "restoring" ns))
+
 (defn -main [& args]
   (when-not (<= 3 (count args))
     (println "Requires the color-mode, the project name, and at least one namespace to test")
     (System/exit 1))
 
-  (let [[color-mode & args] args
+  (let [options (-> (System/getProperty "org.corfield.external-test-runner.opts")
+                    (or "{}")
+                    (edn/read-string))
+        #_#__ (prn options (System/getProperty "org.corfield.external-test-runner.opts"))
+        filter-fn (constantly true)
+        [color-mode & args] args
         [project-name & args] args
         [setup-fn & nses]
         (if (str/includes? (first args) "/")
@@ -44,12 +54,15 @@
                 {:keys [error fail pass]}
                 (try
                   (require test-sym)
+                  (filter-vars! test-sym filter-fn)
                   (test/run-tests test-sym)
                   (catch Exception e
                     (.printStackTrace e)
                     (println (str (color/error color-mode "Couldn't run test statement")
                                   " for the " (color/project project-name color-mode)
-                                  " project: " test-ns " " (color/error color-mode e)))))
+                                  " project: " test-ns " " (color/error color-mode e))))
+                  (finally
+                    (restore-vars! test-sym)))
                 result-str (str "Test results: " pass " passes, " fail " failures, " error " errors.")]
             (when (or (nil? error)
                       (< 0 error)

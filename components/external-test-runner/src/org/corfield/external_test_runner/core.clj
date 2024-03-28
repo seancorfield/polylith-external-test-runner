@@ -92,6 +92,14 @@
     (when (seq opts-coll)
       (into [] (mapcat #(if (string? %) [%] (chase-opts-key aliases %))) opts-coll))))
 
+(comment
+  (let [options {:include-src-dir true}]
+    (str "-Dorg.corfield.external-test-runner.opts='"
+         (-> (pr-str (or options {}))
+             (str/replace "'" "''"))
+         "'"))
+  )
+
 (defn create
   [{:keys [workspace project changes test-settings]}]
   (let [options (:org.corfield/external-test-runner test-settings)
@@ -119,7 +127,13 @@
                          (keyword (subs java-opts 1)))
         java-opts      (if opt-key
                          (into [] (remove nil?) (chase-opts-key (get-project-aliases) opt-key))
-                         (when java-opts (str/split java-opts #" ")))]
+                         (when java-opts (str/split java-opts #" ")))
+        ;; turn the options hash into a vector of JVM options that the CLI
+        ;; test runner can recognize:
+        options-as-jvm (cond-> []
+                         (seq options)
+                         (conj (str "-Dorg.corfield.external-test-runner.opts="
+                                    (pr-str options))))]
 
     (reify test-runner-contract/TestRunner
       (test-runner-name [_] "Polylith org.corfield.external-test-runner")
@@ -148,7 +162,9 @@
                                      (conj (str teardown-fn)))
                          java-cmd  (-> (cond-> [(find-java)]
                                          java-opts
-                                         (into java-opts))
+                                         (into java-opts)
+                                         (seq options-as-jvm)
+                                         (into options-as-jvm))
                                        (into ["-cp" classpath
                                               "clojure.main" "-m" process-ns])
                                        (into test-args))
