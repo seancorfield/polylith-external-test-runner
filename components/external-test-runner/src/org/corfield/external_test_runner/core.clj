@@ -8,16 +8,27 @@
   (:import (java.lang ProcessBuilder ProcessBuilder$Redirect)
            (java.util List)))
 
-(defn brick-test-namespaces [bricks test-brick-names]
-  (let [brick-name->namespaces (into {} (map (juxt :name #(-> % :namespaces :test))) bricks)]
+(defn brick-test-namespaces [options bricks test-brick-names]
+  (let [nses-fn (fn [selectors]
+                  (juxt :name
+                        #(mapcat (fn [selector]
+                                   (-> % :namespaces selector))
+                                 selectors)))
+        selectors (cond-> [:test]
+                    (:include-src-dir options)
+                    (conj :src))
+        brick-name->namespaces
+        (into {} (map (nses-fn selectors)) bricks)]
     (into []
           (comp (mapcat brick-name->namespaces)
                 (map :namespace))
           test-brick-names)))
 
-(defn project-test-namespaces [project-name projects-to-test namespaces]
+(defn project-test-namespaces [options project-name projects-to-test namespaces]
   (when (contains? (set projects-to-test) project-name)
-    (mapv :namespace (:test namespaces))))
+    (cond-> (mapv :namespace (:test namespaces))
+      (:include-src-dir options)
+      (into (mapv :namespace (:src namespaces))))))
 
 (defn components-msg [component-names color-mode]
   (when (seq component-names)
@@ -82,8 +93,9 @@
       (into [] (mapcat #(if (string? %) [%] (chase-opts-key aliases %))) opts-coll))))
 
 (defn create
-  [{:keys [workspace project changes #_test-settings]}]
-  (let [{:keys [bases components]} workspace
+  [{:keys [workspace project changes test-settings]}]
+  (let [options (:org.corfield/external-test-runner test-settings)
+        {:keys [bases components]} workspace
         {:keys [name namespaces paths
                 bricks-to-test projects-to-test]} project
         {:keys [project-to-bricks-to-test project-to-projects-to-test]
@@ -94,8 +106,8 @@
         test-sources-present* (delay (-> paths :test seq))
         bricks-to-test* (delay (project-to-bricks-to-test name))
         projects-to-test* (delay (project-to-projects-to-test name))
-        test-nses*     (->> [(brick-test-namespaces (into components bases) @bricks-to-test*)
-                             (project-test-namespaces name @projects-to-test* namespaces)]
+        test-nses*     (->> [(brick-test-namespaces options (into components bases) @bricks-to-test*)
+                             (project-test-namespaces options name @projects-to-test* namespaces)]
                             (into [] cat)
                             (delay))
         path-sep       (System/getProperty "path.separator")

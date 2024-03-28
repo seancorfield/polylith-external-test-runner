@@ -12,10 +12,8 @@
  :projects {"runner"
             {:alias "r"
              :test
-             {:create-test-runner
-              [org.corfield.external-test-runner.interface/create]}}
+             {:org.corfield/external-test-runner {:include-src-dir true}}}
             "development"
             {:alias "dev"
              :test
-             {:create-test-runner
-              [org.corfield.external-test-runner.interface/create]}}}}
+             {:org.corfield/external-test-runner {}}}}}
