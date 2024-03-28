@@ -2,5 +2,5 @@
   (:require [clojure.test :refer [deftest is]]
             [org.corfield.external-test-runner.interface]))
 
-(deftest dummy-test
+(deftest ^:dev dummy-test
   (is (= 1 1)))

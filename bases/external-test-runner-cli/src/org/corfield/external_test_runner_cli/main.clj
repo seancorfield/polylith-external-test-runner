@@ -22,9 +22,52 @@
             false))))
     true))
 
-(defn- filter-vars! [ns filter-fn] #_(println "filtering" ns))
+(defn- filter-vars!
+  "Copied from https://github.com/cognitect-labs/test-runner/blob/7284cda41fb9edc0f3bc6b6185cfb7138fc8a023/src/cognitect/test_runner.clj#L37
+   and adjusted for a single namespace."
+  [ns filter-fn]
+  (doseq [[_name var] (ns-publics ns)]
+    (when (:test (meta var))
+      (when (not (filter-fn var))
+        (alter-meta! var #(-> %
+                              (assoc ::test (:test %))
+                              (dissoc :test)))))))
 
-(defn- restore-vars! [ns] #_(println "restoring" ns))
+(defn- var-filter
+  "Copied from https://github.com/cognitect-labs/test-runner/blob/7284cda41fb9edc0f3bc6b6185cfb7138fc8a023/src/cognitect/test_runner.clj#L19C1-L35C32"
+  [{:keys [var include exclude]}]
+  (let [test-specific (if var
+                        (set (map #(or (resolve %)
+                                       (throw (ex-info (str "Could not resolve var: " %)
+                                                       {:symbol %})))
+                                  var))
+                        (constantly true))
+        test-inclusion (if include
+                         #((apply some-fn include) (meta %))
+                         (constantly true))
+        test-exclusion (if exclude
+                         #((complement (apply some-fn exclude)) (meta %))
+                         (constantly true))]
+    #(and (test-specific %)
+          (test-inclusion %)
+          (test-exclusion %))))
+
+(defn- restore-vars!
+  "Copied from https://github.com/cognitect-labs/test-runner/blob/7284cda41fb9edc0f3bc6b6185cfb7138fc8a023/src/cognitect/test_runner.clj#L47
+   and adjusted for a single namespace."
+  [ns]
+  (doseq [[_name var] (ns-publics ns)]
+    (when (::test (meta var))
+      (alter-meta! var #(-> %
+                            (assoc :test (::test %))
+                            (dissoc ::test))))))
+
+(defn- contains-tests?
+  "Check if a namespace contains some tests to be executed.
+   Copied from https://github.com/cognitect-labs/test-runner/blob/7284cda41fb9edc0f3bc6b6185cfb7138fc8a023/src/cognitect/test_runner.clj#L56C1-L60C34"
+  [ns]
+  (some (comp :test meta)
+        (-> ns ns-publics vals)))
 
 (defn -main [& args]
   (when-not (<= 3 (count args))
@@ -34,8 +77,7 @@
   (let [options (-> (System/getProperty "org.corfield.external-test-runner.opts")
                     (or "{}")
                     (edn/read-string))
-        #_#__ (prn options (System/getProperty "org.corfield.external-test-runner.opts"))
-        filter-fn (constantly true)
+        filter-fn (var-filter (:focus options))
         [color-mode & args] args
         [project-name & args] args
         [setup-fn & nses]
@@ -51,11 +93,13 @@
       (try
         (doseq [test-ns nses]
           (let [test-sym (symbol test-ns)
-                {:keys [error fail pass]}
+                {:keys [error fail pass skip]}
                 (try
                   (require test-sym)
                   (filter-vars! test-sym filter-fn)
-                  (test/run-tests test-sym)
+                  (if (contains-tests? test-sym)
+                    (test/run-tests test-sym)
+                    {:error 0 :fail 0 :pass 0 :skip true})
                   (catch Exception e
                     (.printStackTrace e)
                     (println (str (color/error color-mode "Couldn't run test statement")
@@ -64,11 +108,16 @@
                   (finally
                     (restore-vars! test-sym)))
                 result-str (str "Test results: " pass " passes, " fail " failures, " error " errors.")]
-            (when (or (nil? error)
-                      (< 0 error)
-                      (< 0 fail))
-              (throw (Exception. (str "\n" (color/error color-mode result-str)))))
-            (println (str "\n" (color/ok color-mode result-str)))))
+            (when-not skip
+              (when (or (nil? error)
+                        (< 0 error)
+                        (< 0 fail))
+                (throw (Exception. (str "\n" (color/error color-mode result-str))))))
+            (if skip
+              (println (str "\nNo "
+                            (when (seq (:focus options)) "applicable ")
+                            "tests found in " test-ns))
+              (println (str "\n" (color/ok color-mode result-str))))))
         (finally
           (when-not (execute-fn teardown-fn "teardown" project-name color-mode)
             (throw (ex-info "Test terminated due to teardown failure"

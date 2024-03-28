@@ -1,6 +1,7 @@
 (ns org.corfield.external-test-runner.core
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
+            [clojure.test :refer [is]]
             [clojure.tools.deps :as deps]
             [polylith.clj.core.test-runner-contract.interface :as test-runner-contract]
             [polylith.clj.core.util.interface.color :as color]
@@ -34,7 +35,10 @@
   (when (seq component-names)
     [(color/component (str/join ", " component-names) color-mode)]))
 
-(defn bases-msg [base-names color-mode]
+(defn bases-msg
+  ;; this is a test function in the src directory:
+  {:test (fn [] (is (= nil (bases-msg [] nil))))}
+  [base-names color-mode]
   (when (seq base-names)
     [(color/base (str/join ", " base-names) color-mode)]))
 

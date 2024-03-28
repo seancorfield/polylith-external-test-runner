@@ -12,8 +12,9 @@
  :projects {"runner"
             {:alias "r"
              :test
-             {:org.corfield/external-test-runner {:include-src-dir true}}}
+             {:org.corfield/external-test-runner {:include-src-dir true
+                                                  :focus {:exclude [:integration]}}}}
             "development"
             {:alias "dev"
              :test
-             {:org.corfield/external-test-runner {:focus [:foo :bar]}}}}}
+             {:org.corfield/external-test-runner {:focus {:include [:dev]}}}}}}
