@@ -1,7 +1,12 @@
 # Changes
 
+v0.5.0 in progress
+* Address [#5](https://github.com/seancorfield/polylith-external-test-runner/issues/5) and [#6](https://github.com/seancorfield/polylith-external-test-runner/issues/6) by adding support for a `:test` settings key of `:org.corfield/external-test-runner` that can specify configuration for this test runner. Currently, it supports `:include-src-dir` (`true`/`false`) and `:focus` which takes a hash map of `:var`, `:include`, `:exclude` keys to match [Cognitect's test runner](https://github.com/cognitect-labs/test-runner). Documentation TBD.
+* Polylith 0.2.19 is released and stable: update various references accordingly.
+* Update default Clojure version to 1.11.2; also update tools.deps.
+
 v0.4.0 eb954fe -- 2024-01-25
-* Make the runner compatible with both Polylith 0.2.19 (in development) and 0.2.18/17.
+* Make the runner compatible with both Polylith 0.2.19-SNAPSHOT and 0.2.18/17.
 
 v0.3.0 9f6391a -- 2023-10-28
 * Fix [#4](https://github.com/seancorfield/polylith-external-test-runner/issues/4) by guarding `str/split` with `when java-opts`.
