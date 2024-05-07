@@ -1,4 +1,4 @@
-{:deps {org.clojure/clojure {:mvn/version "1.11.2"}
+{:deps {org.clojure/clojure {:mvn/version "1.11.3"}
 
         polylith-external-test-runner.bases/external-test-runner-cli {:local/root "../../bases/external-test-runner-cli"}
         polylith-external-test-runner.components/external-test-runner {:local/root "../../components/external-test-runner"}
