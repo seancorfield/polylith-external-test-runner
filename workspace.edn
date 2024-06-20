@@ -9,12 +9,20 @@
 
  :test {:create-test-runner [org.corfield.external-test-runner.interface/create]}
 
- :projects {"runner"
-            {:alias "r"
-             :test
-             {:org.corfield/external-test-runner {:include-src-dir true
-                                                  :focus {:exclude [:integration]}}}}
-            "development"
-            {:alias "dev"
-             :test
-             {:org.corfield/external-test-runner {:focus {:include [:dev]}}}}}}
+ :test-configs
+ {:source ; without integration
+  {:org.corfield/external-test-runner {:include-src-dir true
+                                       :focus {:exclude [:integration]}}}
+  :dev
+  {:org.corfield/external-test-runner {:focus {:include [:dev]}}}
+  :dummy
+  {:org.corfield/external-test-runner
+   {:focus {:var [org.corfield.external-test-runner.core-test/dummy-test
+                  org.corfield.external-test-runner.interface-test/dummy-test
+                  ignore/me]}}}}
+
+ :projects {"runner"      {:alias "r"
+                           ;; must override this with :source and/or :dev
+                           :test {:org.corfield/external-test-runner
+                                  {:focus {:include [:none]}}}}
+            "development" {:alias "dev"}}}

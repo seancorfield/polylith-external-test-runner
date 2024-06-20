@@ -16,7 +16,7 @@ make this test-runner available:
 
 ```clojure
 io.github.seancorfield/polylith-external-test-runner
-{:git/tag "v0.5.0" :git/sha "..."
+{:git/tag "v0.5.0" :git/sha "971edf4"
  :deps/root "projects/runner"}
 ```
 
@@ -76,7 +76,7 @@ default is `false`).
 
 In addition, like the [Cognitect's test runner](https://github.com/cognitect-labs/test-runner),
 you can specify that only certain tests should be run, either by specifying
-a collection of regexes to match test names (`:var`), or by specifying
+a collection of fully-qualified test names (`:var`), or by specifying
 keywords to include or exclude tests via metadata (`:include` and `:exclude`).
 These can be provided in a `:focus` option as a hash map, and may be combined.
 

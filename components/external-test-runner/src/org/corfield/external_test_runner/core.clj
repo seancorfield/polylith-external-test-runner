@@ -106,12 +106,20 @@
   )
 
 (defn create
-  [{:keys [workspace project changes test-settings]}]
+  [{:keys [workspace project changes test-settings] :as all}]
   (let [env-opts (-> (System/getenv "ORG_CORFIELD_EXTERNAL_TEST_RUNNER")
                      (or "{}")
                      (edn/read-string))
+        ws-opts (-> workspace :settings :test)
         options (merge (:org.corfield/external-test-runner test-settings)
+                       (:org.corfield/external-test-runner ws-opts)
                        env-opts)
+        _
+        (when (seq options)
+          (println "Test runner options:")
+          (doseq [[k v] options]
+            (println " " k "=>" v))
+          (println ""))
         {:keys [bases components]} workspace
         {:keys [name namespaces paths
                 bricks-to-test projects-to-test]} project

@@ -37,10 +37,7 @@
   "Copied from https://github.com/cognitect-labs/test-runner/blob/7284cda41fb9edc0f3bc6b6185cfb7138fc8a023/src/cognitect/test_runner.clj#L19C1-L35C32"
   [{:keys [var include exclude]}]
   (let [test-specific (if var
-                        (set (map #(or (resolve %)
-                                       (throw (ex-info (str "Could not resolve var: " %)
-                                                       {:symbol %})))
-                                  var))
+                        #((set (keep resolve var)) %)
                         (constantly true))
         test-inclusion (if include
                          #((apply some-fn include) (meta %))
