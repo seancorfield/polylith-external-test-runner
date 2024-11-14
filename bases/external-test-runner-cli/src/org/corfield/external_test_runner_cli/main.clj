@@ -85,7 +85,9 @@
         (let [poss-teardown (last nses)]
           (if (and poss-teardown (str/includes? poss-teardown "/"))
             [poss-teardown (butlast nses)]
-            [nil nses]))]
+            [nil nses]))
+        lazy-run (try (requiring-resolve 'lazytest.repl/run-tests)
+                      (catch Exception _ nil))]
     (if (execute-fn setup-fn "setup" project-name color-mode)
       (try
         (doseq [test-ns nses]
@@ -95,7 +97,9 @@
                   (require test-sym)
                   (filter-vars! test-sym filter-fn)
                   (if (contains-tests? test-sym)
-                    (test/run-tests test-sym)
+                    (cond->> (test/run-tests test-sym)
+                      lazy-run
+                      (merge-with + (lazy-run test-sym)))
                     {:error 0 :fail 0 :pass 0 :skip true})
                   (catch Exception e
                     (.printStackTrace e)

@@ -1,5 +1,9 @@
 # Changes
 
+v0.6.0 in progress
+* Add support for [lazytest](https://github.com/noahtheduke/lazytest).
+* Polylith 0.2.21 is released and stable: update various references accordingly.
+
 v0.5.0 d93a147 -- 2024-06-20
 * Address [#5](https://github.com/seancorfield/polylith-external-test-runner/issues/5) and [#6](https://github.com/seancorfield/polylith-external-test-runner/issues/6) by adding support for a `:test` settings key of `:org.corfield/external-test-runner` that can specify configuration for this test runner. Currently, it supports `:include-src-dir` (`true`/`false`) and `:focus` which takes a hash map of `:var`, `:include`, `:exclude` keys to match [Cognitect's test runner](https://github.com/cognitect-labs/test-runner). Documentation TBD.
 * Polylith 0.2.19 is released and stable: update various references accordingly.

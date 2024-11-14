@@ -3,12 +3,12 @@
         :extra-deps {polylith-external-test-runner.bases/external-test-runner-cli {:local/root "bases/external-test-runner-cli"}
                      polylith-external-test-runner.components/external-test-runner {:local/root "components/external-test-runner"}
                      polylith-external-test-runner.components/util {:local/root "components/util"}
-                     org.clojure/clojure {:mvn/version "1.11.3"}}}
+                     org.clojure/clojure {:mvn/version "1.11.4"}}}
   :test {:extra-paths []
-         :extra-deps {polylith/clj-poly {:mvn/version "0.2.20-SNAPSHOT"}}}
+         :extra-deps {polylith/clj-poly {:mvn/version "0.2.21"}}}
   :example-opts [:sub-opts "-Dexample=opts"]
   :sub-opts ["-Dsub.example=more.opts"]
-  :poly {:extra-deps {polylith/clj-poly {:mvn/version "0.2.20-SNAPSHOT"}
+  :poly {:extra-deps {polylith/clj-poly {:mvn/version "0.2.21"}
                       io.github.seancorfield/polylith-external-test-runner
                       {:local/root "projects/runner"}}
          :jvm-opts ["-Dpoly.test.jvm.opts=:example-opts"]
