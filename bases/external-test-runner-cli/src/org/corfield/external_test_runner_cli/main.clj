@@ -24,7 +24,8 @@
 
 (defn- filter-vars!
   "Copied from https://github.com/cognitect-labs/test-runner/blob/7284cda41fb9edc0f3bc6b6185cfb7138fc8a023/src/cognitect/test_runner.clj#L37
-   and adjusted for a single namespace."
+   and adjusted for a single namespace.
+   `clojure.test`-only for now."
   [ns filter-fn]
   (doseq [[_name var] (ns-publics ns)]
     (when (:test (meta var))
@@ -51,7 +52,8 @@
 
 (defn- restore-vars!
   "Copied from https://github.com/cognitect-labs/test-runner/blob/7284cda41fb9edc0f3bc6b6185cfb7138fc8a023/src/cognitect/test_runner.clj#L47
-   and adjusted for a single namespace."
+   and adjusted for a single namespace.
+   `clojure.test`-only for now."
   [ns]
   (doseq [[_name var] (ns-publics ns)]
     (when (::test (meta var))
@@ -61,9 +63,10 @@
 
 (defn- contains-tests?
   "Check if a namespace contains some tests to be executed.
-   Copied from https://github.com/cognitect-labs/test-runner/blob/7284cda41fb9edc0f3bc6b6185cfb7138fc8a023/src/cognitect/test_runner.clj#L56C1-L60C34"
+   Looks for `:test` metadata (any) or `:type :lazytest/var`."
   [ns]
-  (some (comp :test meta)
+  (some #(or (-> % (meta) :test)
+             (-> % (meta) :type (= :lazytest/var)))
         (-> ns ns-publics vals)))
 
 (defn -main [& args]
