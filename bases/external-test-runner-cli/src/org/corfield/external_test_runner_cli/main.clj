@@ -93,7 +93,7 @@
         is-test? ; is var a clojure.test test?
         (fn [v] (-> v (meta) :test))
         lazy-is-test? ; is var a lazytest test?
-        (try (requiring-resolve 'lazytest.find/find-test-var)
+        (try (requiring-resolve 'lazytest.find/find-var-test-value)
              (catch Exception _ nil))
         merge-summaries
         (fn [sum1 sum2]
