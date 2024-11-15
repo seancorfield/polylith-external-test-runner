@@ -63,11 +63,9 @@
 
 (defn- contains-tests?
   "Check if a namespace contains some tests to be executed.
-   Looks for `:test` metadata (any) or `:type :lazytest/var`."
-  [ns]
-  (some #(or (-> % (meta) :test)
-             (-> % (meta) :type (= :lazytest/var)))
-        (-> ns ns-publics vals)))
+  The predicate determines how to identify a test."
+  [ns pred]
+  (some pred (-> ns ns-publics vals)))
 
 (defn -main [& args]
   (when-not (<= 3 (count args))
@@ -89,8 +87,17 @@
           (if (and poss-teardown (str/includes? poss-teardown "/"))
             [poss-teardown (butlast nses)]
             [nil nses]))
-        lazy-run (try (requiring-resolve 'lazytest.repl/run-tests)
-                      (catch Exception _ nil))]
+        lazy-run
+        (try (requiring-resolve 'lazytest.repl/run-tests)
+             (catch Exception _ nil))
+        is-test? ; is var a clojure.test test?
+        (fn [v] (-> v (meta) :test))
+        lazy-is-test? ; is var a lazytest test?
+        (try (requiring-resolve 'lazytest.find/find-test-var)
+             (catch Exception _ nil))
+        merge-summaries
+        (fn [sum1 sum2]
+          (dissoc (merge-with + sum1 sum2) :skip))]
     (if (execute-fn setup-fn "setup" project-name color-mode)
       (try
         (doseq [test-ns nses]
@@ -99,11 +106,15 @@
                 (try
                   (require test-sym)
                   (filter-vars! test-sym filter-fn)
-                  (if (contains-tests? test-sym)
-                    (cond->> (test/run-tests test-sym)
-                      lazy-run
-                      (merge-with + (lazy-run test-sym)))
-                    {:error 0 :fail 0 :pass 0 :skip true})
+                  ;; assume no tests in ns (test-sym), i.e., skip the ns --
+                  ;; if we find tests, we'll run the appropriate test runner,
+                  ;; merge those results into the summary and remove :skip
+                  (cond-> {:error 0 :fail 0 :pass 0 :skip true}
+                    (contains-tests? test-sym is-test?)
+                    (merge-summaries (test/run-tests test-sym))
+                    (and lazy-run lazy-is-test?
+                         (contains-tests? test-sym lazy-is-test?))
+                    (merge-summaries (lazy-run test-sym)))
                   (catch Exception e
                     (.printStackTrace e)
                     (println (str (color/error color-mode "Couldn't run test statement")
