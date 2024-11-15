@@ -90,6 +90,9 @@
         lazy-run
         (try (requiring-resolve 'lazytest.repl/run-tests)
              (catch Exception _ nil))
+        lazy-nested
+        (try @(requiring-resolve 'lazytest.reporters/nested)
+             (catch Exception _ nil))
         is-test? ; is var a clojure.test test?
         (fn [v] (-> v (meta) :test))
         lazy-is-test? ; is var a lazytest test?
@@ -114,7 +117,7 @@
                     (merge-summaries (test/run-tests test-sym))
                     (and lazy-run lazy-is-test?
                          (contains-tests? test-sym lazy-is-test?))
-                    (merge-summaries (lazy-run test-sym)))
+                    (merge-summaries (lazy-run test-sym {:reporters [lazy-nested]})))
                   (catch Exception e
                     (.printStackTrace e)
                     (println (str (color/error color-mode "Couldn't run test statement")
