@@ -1,5 +1,6 @@
 (ns org.corfield.external-test-runner-cli.main
   (:require [clojure.edn :as edn]
+            [clojure.set :as set]
             [clojure.string :as str]
             [clojure.test :as test]
             [org.corfield.util.interface.color :as color]))
@@ -98,6 +99,7 @@
         lazy-is-test? ; is var a lazytest test?
         (try (requiring-resolve 'lazytest.find/find-var-test-value)
              (catch Exception _ nil))
+        lazy-opts {:var :var-filter :namespace :ns-filter :output :reporter}
         merge-summaries
         (fn [sum1 sum2]
           (dissoc (merge-with + sum1 sum2) :skip))]
@@ -117,7 +119,10 @@
                     (merge-summaries (test/run-tests test-sym))
                     (and lazy-run lazy-is-test?
                          (contains-tests? test-sym lazy-is-test?))
-                    (merge-summaries (lazy-run test-sym {:reporters [lazy-nested]})))
+                    (merge-summaries (lazy-run test-sym
+                                               (merge {:reporter [lazy-nested]}
+                                                      (set/rename-keys (:focus options)
+                                                                       lazy-opts)))))
                   (catch Exception e
                     (.printStackTrace e)
                     (println (str (color/error color-mode "Couldn't run test statement")
