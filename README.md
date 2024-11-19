@@ -32,7 +32,7 @@ to run all of your projects' tests in subprocesses:
 Alternatively, to run just specific projects in subprocesses,
 add that `:create-test-runner` entry to those specific projects.
 
-See also **Test Configuration** below for new functionality available with Polylith 0.2.20.
+See also **Test Configuration** below for new functionality available with Polylith 0.2.20+.
 
 ### Finding Java
 
@@ -80,16 +80,23 @@ a collection of fully-qualified test names (`:var`), or by specifying
 keywords to include or exclude tests via metadata (`:include` and `:exclude`).
 These can be provided in a `:focus` option as a hash map, and may be combined.
 
-### Polylith 0.2.20
+As of v0.6.0, this test runner also supports [LazyTest](https://github.com/NoahTheDuke/lazytest).
+The same `:focus` options are supported for LazyTest as for Cognitect's test runner
+(and under the hood `:var` is mapped to `:var-filter` etc). In addition, you can
+specify `:output`, under `:focus`, as a symbol to control the reporting of
+test passes and failures. Test suites can contain a mix of both
+`clojure.test`-compatible tests and LazyTest tests.
 
-If you are using the current 0.2.20-SNAPSHOT version of Polylith, you can
+### Polylith 0.2.20+
+
+If you are using the current 0.2.20-SNAPSHOT version of Polylith or later, you can
 provide these options in `workspace.edn` under the `:test-configs` key, and
 this test runner looks for the `:org.corfield/external-test-runner` key within
 those configurations.
 
 ```clojure
 ;; in your deps.edn file:
-polylith/clj-poly {:mvn/version "0.2.20-SNAPSHOT"}
+polylith/clj-poly {:mvn/version "0.2.21"}
 
 ;; in your workspace.edn file:
 :test {:create-test-runner [org.corfield.external-test-runner.interface/create]}
@@ -104,10 +111,10 @@ Now you can use `poly test with:source` to run tests in both `test` and `src`
 directories, or `poly test with:slow` to run only tests defined with `^:slow` or
 `^{:slow true}` metadata. You can combine these options as well: `poly test with:source:slow`.
 
-See [Test configuration](https://cljdoc.org/d/polylith/clj-poly/0.2.20-SNAPSHOT/doc/test-runners#test-configuration)
+See [Test configuration](https://cljdoc.org/d/polylith/clj-poly/CURRENT/doc/test-runners#test-configuration)
 in the Polylith 0.2.20-SNAPSHOT documentation for more details.
 
-> Note: whether you use a single value or a vector for `:create-test-runner` matters in Polylith 0.2.20 when you use the new `with` syntax for test configurations.
+> Note: whether you use a single value or a vector for `:create-test-runner` matters in Polylith 0.2.20+ when you use the new `with` syntax for test configurations.
 
 ### Configuration Via Environment Variable
 
@@ -119,7 +126,7 @@ that is read as an EDN hash map:
 ORG_CORFIELD_EXTERNAL_TEST_RUNNER="{:include-src-dir true}" poly test
 ```
 
-> Note: you can also use the environment variable with Polylith 0.2.20 to override `:include-src-dir` or `:focus` from the `:test-configs` setting, via a simple merge.
+> Note: you can also use the environment variable with Polylith 0.2.20+ to override `:include-src-dir` or `:focus` from the `:test-configs` setting, via a simple merge.
 
 ## License & Copyright
 

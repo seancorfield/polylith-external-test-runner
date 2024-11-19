@@ -1,6 +1,6 @@
 # Changes
 
-v0.6.0 in progress
+v0.6.0 -- 2024-11-19
 * Add support for [lazytest](https://github.com/noahtheduke/lazytest).
 * Polylith 0.2.21 is released and stable: update various references accordingly.
 
