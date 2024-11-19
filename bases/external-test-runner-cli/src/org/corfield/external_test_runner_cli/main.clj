@@ -91,15 +91,12 @@
         lazy-run
         (try (requiring-resolve 'lazytest.repl/run-tests)
              (catch Exception _ nil))
-        lazy-nested
-        (try @(requiring-resolve 'lazytest.reporters/nested)
-             (catch Exception _ nil))
         is-test? ; is var a clojure.test test?
         (fn [v] (-> v (meta) :test))
         lazy-is-test? ; is var a lazytest test?
         (try (requiring-resolve 'lazytest.find/find-var-test-value)
              (catch Exception _ nil))
-        lazy-opts {:var :var-filter :namespace :ns-filter :output :reporter}
+        lazy-opts {:var :var-filter :namespace :ns-filter}
         merge-summaries
         (fn [sum1 sum2]
           (dissoc (merge-with + sum1 sum2) :skip))]
@@ -120,7 +117,7 @@
                     (and lazy-run lazy-is-test?
                          (contains-tests? test-sym lazy-is-test?))
                     (merge-summaries (lazy-run test-sym
-                                               (merge {:reporter [lazy-nested]}
+                                               (merge {:output ['lazytest.reporters/nested]}
                                                       (set/rename-keys (:focus options)
                                                                        lazy-opts)))))
                   (catch Exception e
