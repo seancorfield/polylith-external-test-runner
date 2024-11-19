@@ -93,7 +93,7 @@
              (catch Exception _ nil))
         is-test? ; is var a clojure.test test?
         (fn [v] (-> v (meta) :test))
-        lazy-is-test? ; is var a lazytest test?
+        lazy-find ; is var a lazytest test?
         (try (requiring-resolve 'lazytest.find/find-var-test-value)
              (catch Exception _ nil))
         lazy-opts {:var :var-filter :namespace :ns-filter}
@@ -114,12 +114,11 @@
                   (cond-> {:error 0 :fail 0 :pass 0 :skip true}
                     (contains-tests? test-sym is-test?)
                     (merge-summaries (test/run-tests test-sym))
-                    (and lazy-run lazy-is-test?
-                         (contains-tests? test-sym lazy-is-test?))
+                    (and lazy-run lazy-find
+                         (contains-tests? test-sym lazy-find))
                     (merge-summaries (lazy-run test-sym
-                                               (merge {:output ['lazytest.reporters/nested]}
-                                                      (set/rename-keys (:focus options)
-                                                                       lazy-opts)))))
+                                               (set/rename-keys (:focus options)
+                                                                lazy-opts))))
                   (catch Exception e
                     (.printStackTrace e)
                     (println (str (color/error color-mode "Couldn't run test statement")
