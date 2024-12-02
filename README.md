@@ -20,7 +20,7 @@ make this test-runner available:
 
 ```clojure
 io.github.seancorfield/polylith-external-test-runner
-{:git/tag "v0.6.0" :git/sha "90e8ac1"
+{:git/tag "v0.6.1" :git/sha "d0f51c2"
  :deps/root "projects/runner"}
 ```
 

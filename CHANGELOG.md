@@ -1,6 +1,6 @@
 # Changes
 
-v0.6.1 -- 2024-12-02
+v0.6.1 d0f51c2 -- 2024-12-02
 * Fix [#11](https://github.com/seancorfield/polylith-external-test-runner/issues/11) by supporting `:jvm-opts` in `poly test` property handling.
 * Address [#8](https://github.com/seancorfield/polylith-external-test-runner/issues/8) by noting that the standalone `poly` tool cannot be used with external test runners.
 
