@@ -94,8 +94,9 @@
   options for that k, resolving recursively if needed, or nil."
   [aliases k]
   (let [opts-coll (get aliases k)]
-    (when (seq opts-coll)
-      (into [] (mapcat #(if (string? %) [%] (chase-opts-key aliases %))) opts-coll))))
+    (or (:jvm-opts opts-coll)
+        (when (seq opts-coll)
+          (into [] (mapcat #(if (string? %) [%] (chase-opts-key aliases %))) opts-coll)))))
 
 (comment
   (let [options {:include-src-dir true}]
