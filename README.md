@@ -11,6 +11,10 @@ dependency.
 Ensure you are using a recent version Polylith that supports
 external test runners (v0.2.17-alpha or later).
 
+You must be using a `:poly` alias in your `deps.edn` file to run the Polylith
+tool and tests, since you need to be able to modify the classpath to add an
+external test runnner. You cannot use the standalone `poly` tool for this.
+
 Add the following dependency to your `:poly` alias to
 make this test-runner available:
 

@@ -2,6 +2,7 @@
 
 v0.6.next in progress
 * Fix [#11](https://github.com/seancorfield/polylith-external-test-runner/issues/11) by supporting `:jvm-opts` in `poly test` property handling.
+* Address [#8](https://github.com/seancorfield/polylith-external-test-runner/issues/8) by noting that the standalone `poly` tool cannot be used with external test runners.
 
 v0.6.0 90e8ac1 -- 2024-11-19
 * Add support for [lazytest](https://github.com/noahtheduke/lazytest).
