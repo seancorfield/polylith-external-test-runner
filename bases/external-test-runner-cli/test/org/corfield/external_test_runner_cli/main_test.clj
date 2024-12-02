@@ -8,4 +8,6 @@
   ;; but this option, set via a keyword, should be:
   (is (= "opts" (System/getProperty "example")))
   ;; and so should this, set recursively:
-  (is (= "more.opts" (System/getProperty "sub.example"))))
+  (is (= "more.opts" (System/getProperty "sub.example")))
+  ;; and issue #11 should set this too, recursively:
+  (is (= "even.more.opts" (System/getProperty "nested.example"))))

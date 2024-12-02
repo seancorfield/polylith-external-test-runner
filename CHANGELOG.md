@@ -1,5 +1,8 @@
 # Changes
 
+v0.6.next in progress
+* Fix [#11](https://github.com/seancorfield/polylith-external-test-runner/issues/11) by supporting `:jvm-opts` in `poly test` property handling.
+
 v0.6.0 90e8ac1 -- 2024-11-19
 * Add support for [lazytest](https://github.com/noahtheduke/lazytest).
 * Polylith 0.2.21 is released and stable: update various references accordingly.

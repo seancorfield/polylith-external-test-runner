@@ -91,9 +91,13 @@
 
 (defn- chase-opts-key
   "Given an aliases set and a keyword k, return a flattened vector of
-  options for that k, resolving recursively if needed, or nil."
+  options for that k, resolving recursively if needed, or nil.
+  Options can be a vector, or a hash map containing :jvm-opts identifying
+  a vector, of JVM options."
   [aliases k]
-  (let [opts-coll (get aliases k)]
+  (let [opts-coll (get aliases k)
+        ;; per issue #11, unroll :jvm-opts if needed:
+        opts-coll (or (:jvm-opts opts-coll) opts-coll)]
     (when (seq opts-coll)
       (into [] (mapcat #(if (string? %) [%] (chase-opts-key aliases %))) opts-coll))))
 

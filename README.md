@@ -65,6 +65,9 @@ looked up recursively (a similar ability has been [proposed for `tools.deps.alph
 See this project's [`deps.edn` file](https://github.com/seancorfield/polylith-external-test-runner/blob/main/deps.edn)
 for an example (which is used in the tests for this project).
 
+As of v0.6.next, these aliases can refer to hash maps containing `:jvm-opts` keys,
+making it easier to reuse existing aliases for the testing context.
+
 ## Test Configuration
 
 > Note: this functionality is new in v0.5.0 and is primarily intended for use with Polylith 0.2.20 or later.

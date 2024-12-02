@@ -6,8 +6,9 @@
                      org.clojure/clojure {:mvn/version "1.11.4"}}}
   :test {:extra-paths []
          :extra-deps {polylith/clj-poly {:mvn/version "0.2.21"}}}
-  :example-opts [:sub-opts "-Dexample=opts"]
+  :example-opts [:sub-opts "-Dexample=opts" :nested-opts]
   :sub-opts ["-Dsub.example=more.opts"]
+  :nested-opts {:jvm-opts ["-Dnested.example=even.more.opts"]}
   :poly {:extra-deps {polylith/clj-poly {:mvn/version "0.2.21"}
                       io.github.seancorfield/polylith-external-test-runner
                       {:local/root "projects/runner"}}
