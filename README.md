@@ -53,7 +53,7 @@ options for the subprocess in two ways:
 * via the `POLY_TEST_JVM_OPTS` environment variable,
 * via the `poly.test.jvm.opts` JVM property.
 
-The former can be set in your shell process, for the `poly test` command.
+The former can be set in your shell process, for the `clojure -M:poly test` command.
 The latter can be set in the `:poly` alias via:
 ```clojure
   :jvm-opts ["-Dpoly.test.jvm.opts=..."]
@@ -114,9 +114,9 @@ polylith/clj-poly {:mvn/version "0.2.21"}
                         {:focus {:include [:slow]}}}}
 ```
 
-Now you can use `poly test with:source` to run tests in both `test` and `src`
-directories, or `poly test with:slow` to run only tests defined with `^:slow` or
-`^{:slow true}` metadata. You can combine these options as well: `poly test with:source:slow`.
+Now you can use `clojure -M:poly test with:source` to run tests in both `test` and `src`
+directories, or `clojure -M:poly test with:slow` to run only tests defined with `^:slow` or
+`^{:slow true}` metadata. You can combine these options as well: `clojure -M:poly test with:source:slow`.
 
 See [Test configuration](https://cljdoc.org/d/polylith/clj-poly/CURRENT/doc/test-runners#test-configuration)
 in the Polylith 0.2.20-SNAPSHOT documentation for more details.
@@ -130,7 +130,7 @@ via the `ORG_CORFIELD_EXTERNAL_TEST_RUNNER` environment variable, as a string
 that is read as an EDN hash map:
 
 ```bash
-ORG_CORFIELD_EXTERNAL_TEST_RUNNER="{:include-src-dir true}" poly test
+ORG_CORFIELD_EXTERNAL_TEST_RUNNER="{:include-src-dir true}" clojure -M:poly test
 ```
 
 > Note: you can also use the environment variable with Polylith 0.2.20+ to override `:include-src-dir` or `:focus` from the `:test-configs` setting, via a simple merge.
