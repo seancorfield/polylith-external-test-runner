@@ -3,4 +3,5 @@
             [org.corfield.external-test-runner.interface]))
 
 (deftest ^:dev dummy-test
+  ;; I should run because I'm .cljc
   (is (= 1 1)))

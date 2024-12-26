@@ -10,6 +10,10 @@
   (:import (java.lang ProcessBuilder ProcessBuilder$Redirect)
            (java.util List)))
 
+ (defn- clj-namespace? [{:keys [file-path]}]
+  (or (str/ends-with? file-path ".clj")
+      (str/ends-with? file-path ".cljc")))
+
 (defn brick-test-namespaces [options bricks test-brick-names]
   (let [nses-fn (fn [selectors]
                   (juxt :name
@@ -23,6 +27,7 @@
         (into {} (map (nses-fn selectors)) bricks)]
     (into []
           (comp (mapcat brick-name->namespaces)
+                (filter clj-namespace?)
                 (map :namespace))
           test-brick-names)))
 
