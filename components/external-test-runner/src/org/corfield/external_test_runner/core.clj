@@ -137,7 +137,7 @@
                          (:bricks-to-test project))
 
         ;; TODO: if the project tests aren't to be run, we might further narrow this down
-        test-sources-present* (delay (-> paths :test seq))
+        test-sources-present (-> paths :test seq)
         test-nses*     (->> [(brick-test-namespaces options (into components bases) bricks-to-test)
                              (project-test-namespaces options name projects-to-test namespaces)]
                             (into [] cat)
@@ -162,7 +162,7 @@
     (reify test-runner-contract/TestRunner
       (test-runner-name [_] "Polylith org.corfield.external-test-runner")
 
-      (test-sources-present? [_] @test-sources-present*)
+      (test-sources-present? [_] test-sources-present)
 
       (tests-present? [this {_eval-in-project :eval-in-project :as _opts}]
         (and (test-runner-contract/test-sources-present? this)
