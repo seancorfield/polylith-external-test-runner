@@ -130,12 +130,15 @@
             (println " " k "=>" v))
           (println ""))
         {:keys [bases components]} workspace
-        {:keys [name namespaces paths
-                bricks-to-test-all-sources projects-to-test]} project
+        {:keys [name namespaces paths projects-to-test]} project
+        bricks-to-test (if (:include-src-dir options)
+                         (or (:bricks-to-test-all-sources project)
+                             (:bricks-to-test project))
+                         (:bricks-to-test project))
 
         ;; TODO: if the project tests aren't to be run, we might further narrow this down
         test-sources-present* (delay (-> paths :test seq))
-        test-nses*     (->> [(brick-test-namespaces options (into components bases) bricks-to-test-all-sources)
+        test-nses*     (->> [(brick-test-namespaces options (into components bases) bricks-to-test)
                              (project-test-namespaces options name projects-to-test namespaces)]
                             (into [] cat)
                             (delay))
@@ -167,7 +170,7 @@
 
       (run-tests [this {:keys [all-paths setup-fn teardown-fn process-ns color-mode] :as opts}]
                  (when (test-runner-contract/tests-present? this opts)
-                   (let [run-message (run-message name components bases bricks-to-test-all-sources
+                   (let [run-message (run-message name components bases bricks-to-test
                                                   projects-to-test color-mode)
                          _         (println run-message)
                          classpath (str/join path-sep
