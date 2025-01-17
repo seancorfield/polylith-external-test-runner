@@ -2,6 +2,7 @@
        :auto-add false}
  :top-namespace "org.corfield"
  :interface-ns "interface"
+ :dialects #{"clj" "cljs"}
  :default-profile-name "default"
  :compact-views #{}
  :tag-patterns {:stable "stable-*"

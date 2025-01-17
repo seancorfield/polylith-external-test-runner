@@ -9,7 +9,7 @@ dependency.
 ## Usage
 
 Ensure you are using a recent version Polylith that supports
-external test runners (v0.2.17-alpha or later).
+external test runners (v0.2.22-SNAPSHOT #2 or later).
 
 You must be using a `:poly` alias in your `deps.edn` file to run the Polylith
 tool and tests, since you need to be able to modify the classpath to add an
@@ -20,7 +20,8 @@ make this test-runner available:
 
 ```clojure
 io.github.seancorfield/polylith-external-test-runner
-{:git/tag "v0.6.1" :git/sha "d0f51c2"
+{;:git/tag "v0.6.1" :git/sha "d0f51c2" -- supports Polylith 0.2.18 and later
+ :git/sha ""
  :deps/root "projects/runner"}
 ```
 

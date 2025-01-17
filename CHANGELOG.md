@@ -1,5 +1,9 @@
 # Changes
 
+* v0.7.0 in progress
+  * Switch from `bricks-to-test` to `bricks-to-test-all-sources` in Polylith 0.2.22.
+  * Drop support for WS v2.0 (`changes` data moved to `project` in v3.0).
+
 v0.6.1 d0f51c2 -- 2024-12-02
 * Fix [#11](https://github.com/seancorfield/polylith-external-test-runner/issues/11) by supporting `:jvm-opts` in `poly test` property handling.
 * Address [#8](https://github.com/seancorfield/polylith-external-test-runner/issues/8) by noting that the standalone `poly` tool cannot be used with external test runners.
