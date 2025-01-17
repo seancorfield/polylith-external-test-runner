@@ -115,7 +115,7 @@
   )
 
 (defn create
-  [{:keys [workspace project changes test-settings] :as all}]
+  [{:keys [workspace project test-settings] :as all}]
   (let [env-opts (-> (System/getenv "ORG_CORFIELD_EXTERNAL_TEST_RUNNER")
                      (or "{}")
                      (edn/read-string))
@@ -131,17 +131,12 @@
           (println ""))
         {:keys [bases components]} workspace
         {:keys [name namespaces paths
-                bricks-to-test projects-to-test]} project
-        {:keys [project-to-bricks-to-test project-to-projects-to-test]
-         :or {project-to-bricks-to-test {name bricks-to-test}
-              project-to-projects-to-test {name projects-to-test}}} changes
+                bricks-to-test-all-sources projects-to-test]} project
 
         ;; TODO: if the project tests aren't to be run, we might further narrow this down
         test-sources-present* (delay (-> paths :test seq))
-        bricks-to-test* (delay (project-to-bricks-to-test name))
-        projects-to-test* (delay (project-to-projects-to-test name))
-        test-nses*     (->> [(brick-test-namespaces options (into components bases) @bricks-to-test*)
-                             (project-test-namespaces options name @projects-to-test* namespaces)]
+        test-nses*     (->> [(brick-test-namespaces options (into components bases) bricks-to-test-all-sources)
+                             (project-test-namespaces options name projects-to-test namespaces)]
                             (into [] cat)
                             (delay))
         path-sep       (System/getProperty "path.separator")
@@ -172,8 +167,8 @@
 
       (run-tests [this {:keys [all-paths setup-fn teardown-fn process-ns color-mode] :as opts}]
                  (when (test-runner-contract/tests-present? this opts)
-                   (let [run-message (run-message name components bases @bricks-to-test*
-                                                  @projects-to-test* color-mode)
+                   (let [run-message (run-message name components bases bricks-to-test-all-sources
+                                                  projects-to-test color-mode)
                          _         (println run-message)
                          classpath (str/join path-sep
                                              (->> all-paths
