@@ -4,5 +4,5 @@
         polylith-external-test-runner.components/external-test-runner {:local/root "../../components/external-test-runner"}
         polylith-external-test-runner.components/util {:local/root "../../components/util"}}
 
- :aliases {:test {:extra-paths []
+ :aliases {:test {:extra-paths ["test"]
                   :extra-deps  {polylith/clj-poly {:mvn/version "0.3.32"}}}}}
