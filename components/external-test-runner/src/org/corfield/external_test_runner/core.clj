@@ -3,12 +3,15 @@
             [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.test :refer [is]]
-            [clojure.tools.deps :as deps]
+            [clojure.tools.deps.edn :as deps]
             [polylith.clj.core.test-runner-contract.interface :as test-runner-contract]
             [polylith.clj.core.util.interface.color :as color]
             [polylith.clj.core.util.interface.str :as str-util])
   (:import (java.lang ProcessBuilder ProcessBuilder$Redirect)
            (java.util List)))
+
+(def ^:private my-runner-ns "org.corfield.external-test-runner-cli.main")
+(def ^:private colorizer-ns "org.corfield.util.interface.color")
 
  (defn- clj-namespace? [{:keys [file-path]}]
   (or (str/ends-with? file-path ".clj")
@@ -99,9 +102,15 @@
       java-cmd
       "java")))
 
+(defn- find-clj []
+  (let [clj-cmd (System/getenv "CLJ_CMD")]
+    (if (and clj-cmd (.exists (io/file clj-cmd)))
+      clj-cmd
+      "clojure")))
+
 (defn- get-project-aliases []
-  (let [edn-fn (juxt :root-edn :project-edn)]
-    (-> (deps/find-edn-maps)
+  (let [edn-fn (juxt :root :project)]
+    (-> (deps/create-edn-maps)
         (edn-fn)
         (deps/merge-edns)
         :aliases)))
@@ -126,6 +135,35 @@
          "'"))
   )
 
+(defn- java-test-runner
+  [all-paths setup-fn teardown-fn process-ns color-mode
+   project-name test-nses* options-as-jvm java-opts]
+  (let [path-sep  (System/getProperty "path.separator")
+        classpath (str/join path-sep
+                            (->> all-paths
+                                 (cons (ns->src colorizer-ns))
+                                 (cons (ns->src process-ns))))
+        test-args (cond-> [color-mode project-name]
+                    setup-fn
+                    (conj (str setup-fn))
+                    :always
+                    (into (deref test-nses*))
+                    teardown-fn
+                    (conj (str teardown-fn)))
+        java-cmd  (-> (cond-> [(find-java)]
+                        java-opts
+                        (into java-opts)
+                        (seq options-as-jvm)
+                        (into options-as-jvm))
+                      (into ["-cp" classpath
+                             "clojure.main" "-m" process-ns])
+                      (into test-args))
+        pb        (doto (ProcessBuilder. ^List java-cmd)
+                    (.redirectOutput ProcessBuilder$Redirect/INHERIT)
+                    (.redirectError  ProcessBuilder$Redirect/INHERIT))]
+    (when-not (-> pb (.start) (.waitFor) (zero?))
+      (throw (ex-info "External test runner failed" {:process-ns process-ns})))))
+
 (defn create
   [{:keys [workspace project test-settings] :as all}]
   (let [env-opts (-> (System/getenv "ORG_CORFIELD_EXTERNAL_TEST_RUNNER")
@@ -142,7 +180,8 @@
             (println " " k "=>" v))
           (println ""))
         {:keys [bases components]} workspace
-        {:keys [name namespaces paths project-dir projects-to-test]} project
+        {:keys [namespaces paths project-dir projects-to-test]
+         project-name :name} project
         bricks-to-test (if (:include-src-dir options)
                          (or (:bricks-to-test-all-sources project)
                              (:bricks-to-test project))
@@ -151,16 +190,13 @@
         ;; TODO: if the project tests aren't to be run, we might further narrow this down
         test-sources-present (-> paths :test seq)
         test-nses*     (->> [(brick-test-namespaces options clj-namespace? (into components bases) bricks-to-test)
-                             (project-test-namespaces options clj-namespace? name projects-to-test namespaces)]
+                             (project-test-namespaces options clj-namespace? project-name projects-to-test namespaces)]
                             (into [] cat)
                             (delay))
-        test-cljs*     (delay (when (shadow-cljs? name projects-to-test project-dir)
+        test-cljs*     (delay (when (shadow-cljs? project-name projects-to-test project-dir)
                                 (->> [(brick-test-namespaces options cljs-namespace? (into components bases) bricks-to-test)
-                                      (project-test-namespaces options cljs-namespace? name projects-to-test namespaces)]
+                                      (project-test-namespaces options cljs-namespace? project-name projects-to-test namespaces)]
                                      (into [] cat))))
-        path-sep       (System/getProperty "path.separator")
-        my-runner-ns   "org.corfield.external-test-runner-cli.main"
-        colorizer-ns   "org.corfield.util.interface.color"
         java-opts      (or (System/getenv "POLY_TEST_JVM_OPTS")
                            (System/getProperty "poly.test.jvm.opts"))
         opt-key        (when (and java-opts (re-find #"^:[-a-zA-Z0-9]+$" java-opts))
@@ -187,39 +223,14 @@
 
       (run-tests [this {:keys [all-paths setup-fn teardown-fn process-ns color-mode] :as opts}]
         (when (test-runner-contract/tests-present? this opts)
-          (let [run-message (run-message name components bases bricks-to-test
-                                         projects-to-test color-mode)
-                _         (println run-message)
-                classpath (str/join path-sep
-                                    (->> all-paths
-                                         (cons (ns->src colorizer-ns))
-                                         (cons (ns->src my-runner-ns))))
-                test-args (when (seq @test-nses*)
-                            (cond-> [color-mode name]
-                              setup-fn
-                              (conj (str setup-fn))
-                              :always
-                              (into (deref test-nses*))
-                              teardown-fn
-                              (conj (str teardown-fn))))
-                java-cmd  (when (seq @test-nses*)
-                            (-> (cond-> [(find-java)]
-                                  java-opts
-                                  (into java-opts)
-                                  (seq options-as-jvm)
-                                  (into options-as-jvm))
-                                (into ["-cp" classpath
-                                       "clojure.main" "-m" process-ns])
-                                (into test-args)))
-                pb        (when (seq @test-nses*)
-                            (doto (ProcessBuilder. ^List java-cmd)
-                              (.redirectOutput ProcessBuilder$Redirect/INHERIT)
-                              (.redirectError  ProcessBuilder$Redirect/INHERIT)))]
+          (let [run-message (run-message project-name components bases bricks-to-test
+                                         projects-to-test color-mode)]
+            (println run-message)
+            (when (seq @test-nses*)
+              (java-test-runner all-paths setup-fn teardown-fn process-ns color-mode
+                                project-name test-nses* options-as-jvm java-opts))
             (when (seq @test-cljs*)
               (println "\nNote: Shadow CLJS tests are not yet supported by this test runner.")
-              (println "We would test:" (str/join ", " @test-cljs*)))
-            (when pb
-              (when-not (-> pb (.start) (.waitFor) (zero?))
-                (throw (ex-info "External test runner failed" {:process-ns process-ns})))))))
+              (println "We would test:" (str/join ", " @test-cljs*))))))
       test-runner-contract/ExternalTestRunner
       (external-process-namespace [_] my-runner-ns))))
