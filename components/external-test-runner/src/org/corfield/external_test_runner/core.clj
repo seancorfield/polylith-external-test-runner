@@ -169,10 +169,8 @@
   [all-paths setup-fn teardown-fn process-ns color-mode
    project-name test-cljs* shadow* opts]
   (println "\nNote: Shadow CLJS tests are not yet supported by this test runner.")
-  (let [build (-> opts :test-settings :shadow-build (or :test))
-        target (or (-> @shadow* :builds build :target)
-                   ;; unclear if we should default here?
-                   (-> opts :test-settings :shadow-target))]
+  (let [build  (-> opts :test-settings :shadow-build (or :test))
+        target (-> @shadow* :builds build :target)]
     (if target
       (do
         (println "Selected build and target:" build target)
