@@ -48,9 +48,10 @@
                   (map :namespace))
             nses))))
 
-(defn shadow-cljs? [project-name projects-to-test dir]
-  (when (contains? (set projects-to-test) project-name)
-    (.exists (io/file dir "shadow-cljs.edn"))))
+(defn read-shadow-cljs [project-name projects-to-test dir]
+  (when (and (contains? (set projects-to-test) project-name)
+             (.exists (io/file dir "shadow-cljs.edn")))
+    (edn/read-string (slurp (io/file dir "shadow-cljs.edn")))))
 
 (defn components-msg [component-names color-mode]
   (when (seq component-names)
@@ -164,6 +165,23 @@
     (when-not (-> pb (.start) (.waitFor) (zero?))
       (throw (ex-info "External test runner failed" {:process-ns process-ns})))))
 
+(defn- cljs-test-runner
+  [all-paths setup-fn teardown-fn process-ns color-mode
+   project-name test-cljs* shadow* opts]
+  (println "\nNote: Shadow CLJS tests are not yet supported by this test runner.")
+  (let [build (-> opts :test-settings :shadow-build (or :test))
+        target (or (-> @shadow* :builds build :target)
+                   ;; unclear if we should default here?
+                   (-> opts :test-settings :shadow-target))]
+    (if target
+      (do
+        (println "Selected build and target:" build target)
+        (println "We would test:" (str/join ", " @test-cljs*)))
+      (do
+        (println "Unable to determine Shadow CLJS build or target:")
+        (println "Available builds: " (-> @shadow* :builds (keys)))
+        (println "Available targets:" (->> @shadow* :builds (vals) (map :target)))))))
+
 (defn create
   [{:keys [workspace project test-settings] :as all}]
   (let [env-opts (-> (System/getenv "ORG_CORFIELD_EXTERNAL_TEST_RUNNER")
@@ -193,10 +211,11 @@
                              (project-test-namespaces options clj-namespace? project-name projects-to-test namespaces)]
                             (into [] cat)
                             (delay))
-        test-cljs*     (delay (when (shadow-cljs? project-name projects-to-test project-dir)
-                                (->> [(brick-test-namespaces options cljs-namespace? (into components bases) bricks-to-test)
-                                      (project-test-namespaces options cljs-namespace? project-name projects-to-test namespaces)]
-                                     (into [] cat))))
+        shadow*        (delay (read-shadow-cljs project-name projects-to-test project-dir))
+        test-cljs*     (delay (when @shadow*
+                               (->> [(brick-test-namespaces options cljs-namespace? (into components bases) bricks-to-test)
+                                     (project-test-namespaces options cljs-namespace? project-name projects-to-test namespaces)]
+                                    (into [] cat))))
         java-opts      (or (System/getenv "POLY_TEST_JVM_OPTS")
                            (System/getProperty "poly.test.jvm.opts"))
         opt-key        (when (and java-opts (re-find #"^:[-a-zA-Z0-9]+$" java-opts))
@@ -230,7 +249,7 @@
               (java-test-runner all-paths setup-fn teardown-fn process-ns color-mode
                                 project-name test-nses* options-as-jvm java-opts))
             (when (seq @test-cljs*)
-              (println "\nNote: Shadow CLJS tests are not yet supported by this test runner.")
-              (println "We would test:" (str/join ", " @test-cljs*))))))
+              (cljs-test-runner all-paths setup-fn teardown-fn process-ns color-mode
+                                project-name test-cljs* shadow* opts)))))
       test-runner-contract/ExternalTestRunner
       (external-process-namespace [_] my-runner-ns))))
