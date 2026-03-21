@@ -5,4 +5,5 @@
         polylith-external-test-runner.components/util {:local/root "../../components/util"}}
 
  :aliases {:test {:extra-paths ["test"]
-                  :extra-deps  {polylith/clj-poly {:mvn/version "0.3.32"}}}}}
+                  :extra-deps  {olical/cljs-test-runner {:mvn/version "3.8.1"}
+                                polylith/clj-poly {:mvn/version "0.3.32"}}}}}

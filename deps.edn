@@ -9,7 +9,6 @@
   :example-opts [:sub-opts "-Dexample=opts" :nested-opts]
   :sub-opts ["-Dsub.example=more.opts"]
   :nested-opts {:jvm-opts ["-Dnested.example=even.more.opts"]}
-  :olical {:extra-deps {olical/cljs-test-runner {:mvn/version "3.8.1"}}}
   :poly {:extra-deps {polylith/clj-poly {:mvn/version "0.3.32"}
                       io.github.seancorfield/polylith-external-test-runner
                       {:local/root "projects/runner"}}
