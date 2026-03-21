@@ -6,6 +6,10 @@ Avoids classloader, daemon thread, and memory usage issues
 by running tests in a (Java) subprocess with only Clojure itself as a
 dependency.
 
+As of v0.8.0, will run ClojureScript tests if
+[cljs-test-runner](https://github.com/olical/cljs-test-runner)
+is specified as a `:test` dependency in a `projects/*/deps.edn` file.
+
 ## Usage
 
 Ensure you are using a recent version Polylith that supports
@@ -23,6 +27,9 @@ io.github.seancorfield/polylith-external-test-runner
 {:git/tag "v0.7.0" :git/sha "9d885c0" -- supports Polylith 0.3.0 and later
  :deps/root "projects/runner"}
 ```
+
+Use `:git/sha "208e0b223e6a77f18da17685d05bc790b979541f"` (and no `:git/tag`)
+if you want to try out the ClojureScript support coming in v0.8.0.
 
 In your `workspace.edn` file, either add this global configuration
 to run all of your projects' tests in subprocesses:
@@ -137,7 +144,7 @@ ORG_CORFIELD_EXTERNAL_TEST_RUNNER="{:include-src-dir true}" clojure -M:poly test
 
 ## License & Copyright
 
-External test runner copyright (c) 2022-2025, Sean Corfield,
+External test runner copyright (c) 2022-2026, Sean Corfield,
 Apache Source License 2.0.
 
 Colorizer and string util code copyright (c) 2020-2021, Joakim Tengstrand and others, Eclipse Public License 1.0.

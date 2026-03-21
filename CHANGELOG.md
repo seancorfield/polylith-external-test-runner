@@ -1,6 +1,7 @@
 # Changes
 
 * v0.8.0 in progress
+  * Address [#17](https://github.com/seancorfield/polylith-external-test-runner/issues/17) by adding basic support for running tests as ClojureScript.
   * Update dev/test deps; testing against Polylith 0.3.32.
 
 * v0.7.0 9d885c0 -- 2025-10-08
