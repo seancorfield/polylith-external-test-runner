@@ -168,17 +168,33 @@
 (defn- cljs-test-runner
   [all-paths setup-fn teardown-fn process-ns color-mode
    project-name test-cljs* shadow* olical* opts]
-  (println "\nNote: Shadow CLJS tests are not yet supported by this test runner.")
-  (let [build  (-> opts :test-settings :shadow-build (or :test))
-        target (-> @shadow* :builds build :target)]
-    (if target
-      (do
-        (println "Selected build and target:" build target)
-        (println "We would test:" (str/join ", " @test-cljs*)))
-      (do
-        (println "Unable to determine Shadow CLJS build or target:")
-        (println "Available builds: " (-> @shadow* :builds (keys)))
-        (println "Available targets:" (->> @shadow* :builds (vals) (map :target)))))))
+  (cond
+    @shadow*
+    (do
+      (println "\nNote: Shadow CLJS tests are not yet supported by this test runner.")
+      (let [build  (-> opts :test-settings :shadow-build (or :test))
+            target (-> @shadow* :builds build :target)]
+        (if target
+          (do
+            (println "Selected build and target:" build target)
+            (println "We would test:" (str/join ", " @test-cljs*)))
+          (do
+            (println "Unable to determine Shadow CLJS build or target:")
+            (println "Available builds: " (-> @shadow* :builds (keys)))
+            (println "Available targets:" (->> @shadow* :builds (vals) (map :target)))))))
+
+    @olical*
+    (let [clj-cmd  (find-clj)
+          ns-args  (into [] (mapcat #(vector "-n" (str %))) @test-cljs*)
+          cljs-cmd (into [clj-cmd "-m" "cljs-test-runner.main"] ns-args)
+          pb       (doto (ProcessBuilder. ^List cljs-cmd)
+                     (.redirectOutput ProcessBuilder$Redirect/INHERIT)
+                     (.redirectError  ProcessBuilder$Redirect/INHERIT))]
+      (when-not (-> pb (.start) (.waitFor) (zero?))
+        (throw (ex-info "External CLJS test runner failed" {:process-ns "cljs-test-runner.main"}))))
+
+    :else
+    (println "\nIgnoring" (count @test-cljs*) "CLJS test namespace(s) — no supported ClojureScript test runner found on the classpath.")))
 
 (defn create
   [{:keys [workspace project test-settings] :as all}]
