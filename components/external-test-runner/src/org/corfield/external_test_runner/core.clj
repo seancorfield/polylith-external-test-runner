@@ -160,7 +160,7 @@
       (throw (ex-info "External test runner failed" {:process-ns process-ns})))))
 
 (defn- olical-test-runner
-  [all-paths test-nses*]
+  [all-paths test-nses* options-as-jvm java-opts]
   (let [path-sep  (System/getProperty "path.separator")
         classpath (str/join path-sep (cons (ns->src colorizer-ns) all-paths))
         src-test  (filter #(let [f (io/file %)]
@@ -168,7 +168,11 @@
         test-args (-> []
                       (into (mapcat #(vector "-d" (str %))) src-test)
                       (into (mapcat #(vector "-n" (str %))) (deref test-nses*)))
-        java-cmd  (-> [(find-java)]
+        java-cmd  (-> (cond-> [(find-java)]
+                        java-opts
+                        (into java-opts)
+                        (seq options-as-jvm)
+                        (into options-as-jvm))
                       (into ["-cp" classpath
                              "clojure.main" "-m" "cljs-test-runner.main"])
                       (into test-args))
@@ -179,7 +183,7 @@
       (throw (ex-info "External test runner failed" {})))))
 
 (defn- cljs-test-runner
-  [all-paths setup-fn teardown-fn test-cljs* shadow* opts]
+  [all-paths setup-fn teardown-fn test-cljs* shadow* options-as-jvm java-opts opts]
   (when setup-fn
     (println "\nsetup-fn not supported for ClojureScript tests, ignoring" setup-fn))
   (when teardown-fn
@@ -200,7 +204,7 @@
             (println "Available targets:" (->> @shadow* :builds (vals) (map :target)))))))
 
     (seq (filter #(re-find #"olical" %) all-paths))
-    (olical-test-runner all-paths test-cljs*)
+    (olical-test-runner all-paths test-cljs* options-as-jvm java-opts)
 
     :else
     (println "\nIgnoring" (count @test-cljs*) "cljc/cljs test namespace(s) — no supported ClojureScript test runner found.")))
@@ -235,7 +239,6 @@
                             (into [] cat)
                             (delay))
         shadow*        (delay (read-shadow-cljs project-name projects-to-test project-dir))
-        olical*        (delay (try (require 'cljs-test-runner.main) true (catch Exception _ false)))
         test-cljs*     (->> [(brick-test-namespaces options cljs-namespace? (into components bases) bricks-to-test)
                              (project-test-namespaces options cljs-namespace? project-name projects-to-test namespaces)]
                             (into [] cat)
@@ -273,6 +276,7 @@
               (java-test-runner all-paths setup-fn teardown-fn process-ns color-mode
                                 project-name test-nses* options-as-jvm java-opts))
             (when (seq @test-cljs*)
-              (cljs-test-runner all-paths setup-fn teardown-fn test-cljs* shadow* opts)))))
+              (cljs-test-runner all-paths setup-fn teardown-fn
+                                test-cljs* shadow* options-as-jvm java-opts opts)))))
       test-runner-contract/ExternalTestRunner
       (external-process-namespace [_] my-runner-ns))))
