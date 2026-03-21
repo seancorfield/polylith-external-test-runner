@@ -167,7 +167,7 @@
 
 (defn- cljs-test-runner
   [all-paths setup-fn teardown-fn process-ns color-mode
-   project-name test-cljs* shadow* opts]
+   project-name test-cljs* shadow* olical* opts]
   (println "\nNote: Shadow CLJS tests are not yet supported by this test runner.")
   (let [build  (-> opts :test-settings :shadow-build (or :test))
         target (-> @shadow* :builds build :target)]
@@ -210,6 +210,7 @@
                             (into [] cat)
                             (delay))
         shadow*        (delay (read-shadow-cljs project-name projects-to-test project-dir))
+        olical*        (delay (try (require 'cljs-test-runner.main) true (catch Exception _ false)))
         test-cljs*     (->> [(brick-test-namespaces options cljs-namespace? (into components bases) bricks-to-test)
                              (project-test-namespaces options cljs-namespace? project-name projects-to-test namespaces)]
                             (into [] cat)
@@ -248,6 +249,6 @@
                                 project-name test-nses* options-as-jvm java-opts))
             (when (seq @test-cljs*)
               (cljs-test-runner all-paths setup-fn teardown-fn process-ns color-mode
-                                project-name test-cljs* shadow* opts)))))
+                                project-name test-cljs* shadow* olical* opts)))))
       test-runner-contract/ExternalTestRunner
       (external-process-namespace [_] my-runner-ns))))
