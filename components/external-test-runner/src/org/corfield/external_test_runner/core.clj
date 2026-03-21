@@ -210,10 +210,10 @@
                             (into [] cat)
                             (delay))
         shadow*        (delay (read-shadow-cljs project-name projects-to-test project-dir))
-        test-cljs*     (delay (when @shadow*
-                               (->> [(brick-test-namespaces options cljs-namespace? (into components bases) bricks-to-test)
-                                     (project-test-namespaces options cljs-namespace? project-name projects-to-test namespaces)]
-                                    (into [] cat))))
+        test-cljs*     (->> [(brick-test-namespaces options cljs-namespace? (into components bases) bricks-to-test)
+                             (project-test-namespaces options cljs-namespace? project-name projects-to-test namespaces)]
+                            (into [] cat)
+                            (delay))
         java-opts      (or (System/getenv "POLY_TEST_JVM_OPTS")
                            (System/getProperty "poly.test.jvm.opts"))
         opt-key        (when (and java-opts (re-find #"^:[-a-zA-Z0-9]+$" java-opts))
