@@ -19,3 +19,4 @@
 /target/
 pom.xml
 pom.xml.asc
+cljs-test-runner-out
