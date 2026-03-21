@@ -103,12 +103,6 @@
       java-cmd
       "java")))
 
-(defn- find-clj []
-  (let [clj-cmd (System/getenv "CLJ_CMD")]
-    (if (and clj-cmd (.exists (io/file clj-cmd)))
-      clj-cmd
-      "clojure")))
-
 (defn- get-project-aliases []
   (let [edn-fn (juxt :root :project)]
     (-> (deps/create-edn-maps)
@@ -165,9 +159,31 @@
     (when-not (-> pb (.start) (.waitFor) (zero?))
       (throw (ex-info "External test runner failed" {:process-ns process-ns})))))
 
+(defn- olical-test-runner
+  [all-paths test-nses*]
+  (let [path-sep  (System/getProperty "path.separator")
+        classpath (str/join path-sep (cons (ns->src colorizer-ns) all-paths))
+        src-test  (filter #(let [f (io/file %)]
+                             (and (.exists f) (.isDirectory f))) all-paths)
+        test-args (-> []
+                      (into (mapcat #(vector "-d" (str %))) src-test)
+                      (into (mapcat #(vector "-n" (str %))) (deref test-nses*)))
+        java-cmd  (-> [(find-java)]
+                      (into ["-cp" classpath
+                             "clojure.main" "-m" "cljs-test-runner.main"])
+                      (into test-args))
+        pb        (doto (ProcessBuilder. ^List java-cmd)
+                    (.redirectOutput ProcessBuilder$Redirect/INHERIT)
+                    (.redirectError  ProcessBuilder$Redirect/INHERIT))]
+    (when-not (-> pb (.start) (.waitFor) (zero?))
+      (throw (ex-info "External test runner failed" {})))))
+
 (defn- cljs-test-runner
-  [all-paths setup-fn teardown-fn process-ns color-mode
-   project-name test-cljs* shadow* olical* opts]
+  [all-paths setup-fn teardown-fn test-cljs* shadow* opts]
+  (when setup-fn
+    (println "\nsetup-fn not supported for ClojureScript tests, ignoring" setup-fn))
+  (when teardown-fn
+    (println "\nteardown-fn not supported for ClojureScript tests, ignoring" teardown-fn))
   (cond
     @shadow*
     (do
@@ -183,18 +199,11 @@
             (println "Available builds: " (-> @shadow* :builds (keys)))
             (println "Available targets:" (->> @shadow* :builds (vals) (map :target)))))))
 
-    @olical*
-    (let [clj-cmd  (find-clj)
-          ns-args  (into [] (mapcat #(vector "-n" (str %))) @test-cljs*)
-          cljs-cmd (into [clj-cmd "-M" "-m" "cljs-test-runner.main"] ns-args)
-          pb       (doto (ProcessBuilder. ^List cljs-cmd)
-                     (.redirectOutput ProcessBuilder$Redirect/INHERIT)
-                     (.redirectError  ProcessBuilder$Redirect/INHERIT))]
-      (when-not (-> pb (.start) (.waitFor) (zero?))
-        (throw (ex-info "External CLJS test runner failed" {:process-ns "cljs-test-runner.main"}))))
+    (seq (filter #(re-find #"olical" %) all-paths))
+    (olical-test-runner all-paths test-cljs*)
 
     :else
-    (println "\nIgnoring" (count @test-cljs*) "CLJS test namespace(s) — no supported ClojureScript test runner found on the classpath.")))
+    (println "\nIgnoring" (count @test-cljs*) "cljc/cljs test namespace(s) — no supported ClojureScript test runner found.")))
 
 (defn create
   [{:keys [workspace project test-settings] :as all}]
@@ -264,7 +273,6 @@
               (java-test-runner all-paths setup-fn teardown-fn process-ns color-mode
                                 project-name test-nses* options-as-jvm java-opts))
             (when (seq @test-cljs*)
-              (cljs-test-runner all-paths setup-fn teardown-fn process-ns color-mode
-                                project-name test-cljs* shadow* olical* opts)))))
+              (cljs-test-runner all-paths setup-fn teardown-fn test-cljs* shadow* opts)))))
       test-runner-contract/ExternalTestRunner
       (external-process-namespace [_] my-runner-ns))))

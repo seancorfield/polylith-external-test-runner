@@ -1,4 +1,0 @@
-{:builds
- {:frontend
-  {:target :browser
-   :modules {:main {:init-fn acme.frontend.app/init}}}}}
