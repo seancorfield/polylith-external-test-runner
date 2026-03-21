@@ -1,7 +1,7 @@
 (ns org.corfield.external-test-runner.ignored-test
-  (:require [clojure.test :refer [deftest is]]
-            [org.corfield.external-test-runner.core]))
+  (:require [clojure.test :refer [deftest is]]))
+
+(println "\nThis is a ClojureScript test file.")
 
 (deftest dummy-test
-  ;; I should not run because I'm ClojureScript
-  (is (= 1 0)))
+  (is (= 1 1)))
