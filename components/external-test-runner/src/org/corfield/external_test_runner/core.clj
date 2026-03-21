@@ -186,7 +186,7 @@
     @olical*
     (let [clj-cmd  (find-clj)
           ns-args  (into [] (mapcat #(vector "-n" (str %))) @test-cljs*)
-          cljs-cmd (into [clj-cmd "-m" "cljs-test-runner.main"] ns-args)
+          cljs-cmd (into [clj-cmd "-M" "-m" "cljs-test-runner.main"] ns-args)
           pb       (doto (ProcessBuilder. ^List cljs-cmd)
                      (.redirectOutput ProcessBuilder$Redirect/INHERIT)
                      (.redirectError  ProcessBuilder$Redirect/INHERIT))]
