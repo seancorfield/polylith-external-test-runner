@@ -6,9 +6,10 @@ Avoids classloader, daemon thread, and memory usage issues
 by running tests in a (Java) subprocess with only Clojure itself as a
 dependency.
 
-As of v0.8.0, will run ClojureScript tests if
+As of v0.8.0, will run ClojureScript tests if either a `shadow-cljs.edn` file
+is present in the project directory, or if
 [cljs-test-runner](https://github.com/olical/cljs-test-runner)
-is specified as a `:test` dependency in a `projects/*/deps.edn` file.
+is specified as a `:test` dependency in a project's `deps.edn` file.
 
 ## Usage
 
@@ -28,7 +29,7 @@ io.github.seancorfield/polylith-external-test-runner
  :deps/root "projects/runner"}
 ```
 
-Use `:git/sha "208e0b223e6a77f18da17685d05bc790b979541f"` (and no `:git/tag`)
+Use `:git/sha "23a0405d0e1080ac53d0b5183479768dc678085a"` (and no `:git/tag`)
 if you want to try out the ClojureScript support coming in v0.8.0.
 
 In your `workspace.edn` file, either add this global configuration
@@ -93,6 +94,8 @@ you can specify that only certain tests should be run, either by specifying
 a collection of fully-qualified test names (`:var`), or by specifying
 keywords to include or exclude tests via metadata (`:include` and `:exclude`).
 These can be provided in a `:focus` option as a hash map, and may be combined.
+These `:focus` options are also supported for ClojureScript tests when using
+the `cljs-test-runner` approach (but not with Shadow-cljs).
 
 As of v0.6.0, this test runner also supports [LazyTest](https://github.com/NoahTheDuke/lazytest).
 The same `:focus` options are supported for LazyTest as for Cognitect's test runner
@@ -100,6 +103,11 @@ The same `:focus` options are supported for LazyTest as for Cognitect's test run
 specify `:output`, under `:focus`, as a symbol to control the reporting of
 test passes and failures. Test suites can contain a mix of both
 `clojure.test`-compatible tests and LazyTest tests.
+
+As of v0.8.0, if you are using Shadow-cljs, you can specify the
+Shadow-cljs build to use for running tests, via the `:shadow-build` option.
+The default is the `:test` build, but you can specify any build that
+has a supported `:target` (currently `:node-test` and `:karma` are supported).
 
 ### Polylith 0.2.20+
 

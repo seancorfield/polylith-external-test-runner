@@ -1,7 +1,8 @@
 # Changes
 
 * v0.8.0 in progress
-  * Address [#17](https://github.com/seancorfield/polylith-external-test-runner/issues/17) by adding basic support for running tests as ClojureScript.
+  * Address [#18](https://github.com/seancorfield/polylith-external-test-runner/issues/18) by adding basic support for running ClojureScript tests via Shadow-cljs, inspired by PR [#19](https://github.com/seancorfield/polylith-external-test-runner/pull/19) from [@itai-spiritt](https://github.com/itai-spiritt).
+  * Address [#17](https://github.com/seancorfield/polylith-external-test-runner/issues/17) by adding basic support for running ClojureScript tests via [cljs-test-runner](https://github.com/olical/cljs-test-runner).
   * Update dev/test deps; testing against Polylith 0.3.32.
 
 * v0.7.0 9d885c0 -- 2025-10-08
