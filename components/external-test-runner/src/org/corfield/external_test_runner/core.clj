@@ -189,7 +189,7 @@
       (throw (ex-info "External test runner failed" {})))))
 
 (defn- cljs-test-runner
-  [all-paths setup-fn teardown-fn test-cljs* shadow* java-opts opts]
+  [all-paths setup-fn teardown-fn project-dir test-cljs* shadow* java-opts opts]
   (when setup-fn
     (println "\nsetup-fn not supported for ClojureScript tests, ignoring" setup-fn))
   (when teardown-fn
@@ -202,10 +202,10 @@
             target (-> @shadow* :builds build :target)]
         (if target
           (do
-            (println "Selected build and target:" build target)
+            (println "Selected build and target:" build target "in:" project-dir)
             (println "We would test:" (str/join ", " @test-cljs*)))
           (do
-            (println "Unable to determine Shadow CLJS build or target:")
+            (println "Unable to determine Shadow CLJS build or target in:" project-dir)
             (println "Available builds: " (-> @shadow* :builds (keys)))
             (println "Available targets:" (->> @shadow* :builds (vals) (map :target)))))))
 
@@ -282,7 +282,7 @@
               (java-test-runner all-paths setup-fn teardown-fn process-ns color-mode
                                 project-name test-nses* options-as-jvm java-opts))
             (when (seq @test-cljs*)
-              (cljs-test-runner all-paths setup-fn teardown-fn
+              (cljs-test-runner all-paths setup-fn teardown-fn project-dir
                                 test-cljs* shadow* java-opts options)))))
       test-runner-contract/ExternalTestRunner
       (external-process-namespace [_] my-runner-ns))))
