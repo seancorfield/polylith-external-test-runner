@@ -235,14 +235,14 @@
                   {:target target :build build})))
 
 (defn- cljs-test-runner
-  [all-paths setup-fn teardown-fn project-dir test-cljs* shadow* java-opts opts]
+  [all-paths setup-fn teardown-fn project-dir test-cljs* shadow* java-opts test-opts]
   (when setup-fn
     (println "\nsetup-fn not supported for ClojureScript tests, ignoring" setup-fn))
   (when teardown-fn
     (println "\nteardown-fn not supported for ClojureScript tests, ignoring" teardown-fn))
   (cond
     @shadow*
-    (let [build-key (-> opts :shadow-build (or :test))
+    (let [build-key (-> test-opts :shadow-build (or :test))
           build-map (-> @shadow* :builds build-key)]
       (if (:target build-map)
         (shadow-test project-dir build-map build-key)
@@ -250,14 +250,24 @@
                         {:builds  (-> @shadow* :builds (keys))
                          :targets (->> @shadow* :builds (vals) (map :target))}))))
 
-    (seq (filter #(re-find #"olical" %) all-paths))
-    (olical-test-runner all-paths test-cljs* java-opts opts)
+    ;; if no runner is specified, we still check for it on the classpath:
+    (and (contains? #{nil :olical} (:cljs-test-runner test-opts))
+         (seq (filter #(re-find #"olical" %) all-paths)))
+    (olical-test-runner all-paths test-cljs* java-opts test-opts)
+
+    (contains? #{:shadow :shadow-cljs} (:cljs-test-runner test-opts))
+    (throw (ex-info "Shadow-cljs test runner specified but no shadow-cljs.edn file found in project directory."
+                    {:project-dir project-dir}))
+
+    (contains? #{:olical} (:cljs-test-runner test-opts))
+    (throw (ex-info "cljs-test-runner specified but not found on classpath."
+                    {:project-dir project-dir}))
 
     :else
     (println "\nIgnoring" (count @test-cljs*) "cljc/cljs test namespace(s) — no supported ClojureScript test runner found.")))
 
 (defn create
-  [{:keys [workspace project test-settings] :as all}]
+  [{:keys [workspace project test-settings] :as _all}]
   (let [env-opts  (-> (System/getenv "ORG_CORFIELD_EXTERNAL_TEST_RUNNER")
                       (or "{}")
                       (edn/read-string))
@@ -278,6 +288,9 @@
                          (or (:bricks-to-test-all-sources project)
                              (:bricks-to-test project))
                          (:bricks-to-test project))
+        ;; if no runner is specified, we will check for shadow-clj usage:
+        shadow?        (contains? #{nil :shadow :shadow-cljs}
+                                  (:cljs-test-runner test-opts))
 
         ;; TODO: if the project tests aren't to be run, we might further narrow this down
         test-sources-present (-> paths :test seq)
@@ -285,7 +298,8 @@
                              (project-test-namespaces test-opts clj-namespace? project-name projects-to-test namespaces)]
                             (into [] cat)
                             (delay))
-        shadow*        (delay (read-shadow-cljs project-name projects-to-test project-dir))
+        shadow*        (delay (when shadow?
+                                (read-shadow-cljs project-name projects-to-test project-dir)))
         test-cljs*     (->> [(brick-test-namespaces test-opts cljs-namespace? (into components bases) bricks-to-test)
                              (project-test-namespaces test-opts cljs-namespace? project-name projects-to-test namespaces)]
                             (into [] cat)
@@ -317,12 +331,17 @@
       (run-tests [this {:keys [all-paths setup-fn teardown-fn process-ns color-mode] :as opts}]
         (when (test-runner-contract/tests-present? this opts)
           (let [run-message (run-message project-name components bases bricks-to-test
-                                         projects-to-test color-mode)]
+                                         projects-to-test color-mode)
+                maybe-cljs? (not (contains? #{:none :ignore} (:cljs-test-runner test-opts)))]
             (println run-message)
             (when (seq @test-nses*)
+              (when (and maybe-cljs? (seq @test-cljs*))
+                (println "\nRunning Clojure tests..."))
               (java-test-runner all-paths setup-fn teardown-fn process-ns color-mode
                                 project-name test-nses* options-as-jvm java-opts))
-            (when (seq @test-cljs*)
+            (when (and maybe-cljs? (seq @test-cljs*))
+              (when (seq @test-nses*)
+                (println "\nRunning ClojureScript tests..."))
               (cljs-test-runner all-paths setup-fn teardown-fn project-dir
                                 test-cljs* shadow* java-opts test-opts)))))
       test-runner-contract/ExternalTestRunner

@@ -13,14 +13,17 @@
  :test-configs
  {:source ; without integration
   {:org.corfield/external-test-runner {:include-src-dir true
-                                       :focus {:exclude [:integration]}}}
+                                       :focus {:exclude [:integration]}
+                                       :cljs-test-runner :olical}}
   :dev
-  {:org.corfield/external-test-runner {:focus {:include [:dev]}}}
+  {:org.corfield/external-test-runner {:focus {:include [:dev]}
+                                       :cljs-test-runner :shadow-cljs}}
   :dummy
   {:org.corfield/external-test-runner
    {:focus {:var [org.corfield.external-test-runner.core-test/dummy-test
                   org.corfield.external-test-runner.interface-test/dummy-test
-                  ignore/me]}}}}
+                  ignore/me]}
+    :cljs-test-runner :none}}}
 
  :projects {"runner"      {:alias "r"
                            ;; must override this with :source and/or :dev
