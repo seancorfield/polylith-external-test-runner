@@ -1,128 +1,130 @@
 ---
 name: "clojure-polylith"
-description: "Polylith interface/core delegation pattern, kebab-case namespace with snake_case file naming, test filtering via focus options, subprocess classpath construction, and inline src-test metadata conventions found in this project"
-applyTo: "**/*.{clj,cljs,cljc,edn}"
+description: "Polylith brick structure (interface.clj + core.clj), org.corfield top-namespace with kebab-case namespaces and underscore file paths, EDN config merging pattern, ProcessBuilder subprocess invocation, and clojure.test conventions used throughout this project"
+applyTo: "**/*.{clj,cljs,cljc}"
 ---
 
-## Interface/Core Separation
+## Polylith Brick Structure
 
-- `interface.clj` must contain **only thin delegation functions** — no logic, no state, no side-effects.
-  - ✅ `(defn create [opts] (core/create opts))`
-  - ❌ `(defn create [opts] (when (:debug opts) (println "...")) (core/create opts))`
-- All implementation logic lives exclusively in `core.clj`.
-- The `interface` namespace is the public API contract for other bricks; `core` is private implementation.
+- Every component has exactly two source files: `interface.clj` (public API) and `core.clj` (implementation) — never add business logic to `interface.clj`.
+- `interface.clj` must contain only thin delegation: `(defn create [opts] (core/create opts))` — one line per public function, no `let` bindings, no conditionals.
+- Bases (e.g., `external-test-runner-cli`) expose a `-main` entry point directly; they do not follow the interface/core split.
 
 ```clojure
-;; interface.clj — delegate only
+;; interface.clj — correct
 (ns org.corfield.external-test-runner.interface
   (:require [org.corfield.external-test-runner.core :as core]))
 
 (defn create [opts]
   (core/create opts))
+
+;; interface.clj — wrong (business logic in interface)
+(defn create [{:keys [workspace] :as opts}]
+  (when workspace
+    (core/create opts)))
 ```
 
 ## Namespace and File Naming
 
-- Namespaces use **kebab-case**: `org.corfield.external-test-runner.core`
-- File paths use **snake_case** segment names: `org/corfield/external_test_runner/core.clj`
-- Always align namespace declaration with the physical file path — a mismatch will cause `require` failures.
+- Top-level namespace is always `org.corfield` — never use a different organization prefix.
+- Namespace segments use kebab-case (e.g., `external-test-runner`, `external-test-runner-cli`).
+- File paths use underscores for hyphens (e.g., `external_test_runner/core.clj`, `external_test_runner_cli/main.clj`).
+- Test namespaces append `-test` suffix: `org.corfield.external-test-runner.core-test` in `core_test.clj`.
 
 ```clojure
-;; File: src/org/corfield/external_test_runner/core.clj
+;; Correct namespace declaration matching file path
+;; File: components/external-test-runner/src/org/corfield/external_test_runner/core.clj
 (ns org.corfield.external-test-runner.core ...)
+
+;; File: components/external-test-runner/test/org/corfield/external_test_runner/core_test.clj
+(ns org.corfield.external-test-runner.core-test
+  (:require [clojure.test :refer [deftest is]] ...))
 ```
 
-## Subprocess Classpath Construction
+## EDN Configuration Merging
 
-- Build classpath from `all-paths` (provided by Polylith) **plus** the source roots of `colorizer-ns` and `process-ns` (resolved via `ns->src`).
-- Use `path.separator` system property to join paths portably.
-- Launch with `ProcessBuilder`, redirect both stdout and stderr to `INHERIT`.
-- Throw `ex-info` with `{:process-ns process-ns}` on non-zero exit code.
+- The three-way merge order is: project `test-settings` → workspace `test-configs` → `ORG_CORFIELD_EXTERNAL_TEST_RUNNER` env var (env var wins).
+- Always use `(or "{}" ...)` as the default before `edn/read-string` to avoid nil parse errors.
+- Configuration keys live under `:org.corfield/external-test-runner` within each level.
 
 ```clojure
-(let [path-sep  (System/getProperty "path.separator")
-      classpath (str/join path-sep
-                          (->> all-paths
-                               (cons (ns->src colorizer-ns))
-                               (cons (ns->src process-ns))))
-      pb        (doto (ProcessBuilder. ^List java-cmd)
-                  (.redirectOutput ProcessBuilder$Redirect/INHERIT)
-                  (.redirectError  ProcessBuilder$Redirect/INHERIT))]
+(let [env-opts  (-> (System/getenv "ORG_CORFIELD_EXTERNAL_TEST_RUNNER")
+                    (or "{}")
+                    (edn/read-string))
+      ws-opts   (-> workspace :settings :test)
+      test-opts (merge (:org.corfield/external-test-runner test-settings)
+                       (:org.corfield/external-test-runner ws-opts)
+                       env-opts)])
+```
+
+## ProcessBuilder Subprocess Invocation
+
+- Always redirect both stdout and stderr to `INHERIT` so output streams to the parent process.
+- Throw `ex-info` with a descriptive message and data map on non-zero exit code.
+- Use `^List` type hint on the command vector passed to `ProcessBuilder.` constructor.
+- Resolve `java` binary via `find-java` (checks `JAVA_CMD`, then `JAVA_HOME/bin/java`, then falls back to `"java"`).
+
+```clojure
+(let [pb (doto (ProcessBuilder. ^List java-cmd)
+           (.redirectOutput ProcessBuilder$Redirect/INHERIT)
+           (.redirectError  ProcessBuilder$Redirect/INHERIT))]
   (when-not (-> pb (.start) (.waitFor) (zero?))
     (throw (ex-info "External test runner failed" {:process-ns process-ns}))))
 ```
 
-## Test Option Merging
+## Test Namespace Discovery
 
-- Merge test configuration options in this priority order (later wins):
-  1. Project-level `:org.corfield/external-test-runner` from `test-settings`
-  2. Workspace-level `:org.corfield/external-test-runner` from `workspace :settings :test`
-  3. `ORG_CORFIELD_EXTERNAL_TEST_RUNNER` environment variable (parsed as EDN)
+- Use `clj-namespace?` (ends with `.clj` or `.cljc`) and `cljs-namespace?` (ends with `.cljs` or `.cljc`) predicates to filter by extension.
+- Wrap discovered namespace collections in `(delay ...)` to defer evaluation; dereference with `@` only when actually running tests.
+- Respect `:include-src-dir true` by adding `:src` to the selectors vector alongside `:test`.
 
 ```clojure
-(let [env-opts (-> (System/getenv "ORG_CORFIELD_EXTERNAL_TEST_RUNNER")
-                   (or "{}")
-                   (edn/read-string))
-      ws-opts  (-> workspace :settings :test)
-      options  (merge (:org.corfield/external-test-runner test-settings)
-                      (:org.corfield/external-test-runner ws-opts)
-                      env-opts)]
-  ...)
+(defn- clj-namespace? [{:keys [file-path]}]
+  (or (str/ends-with? file-path ".clj")
+      (str/ends-with? file-path ".cljc")))
+
+;; Use delay to defer discovery
+(def test-nses* (delay (brick-test-namespaces test-opts clj-namespace? bricks bricks-to-test)))
 ```
 
-## JVM Option Resolution via `chase-opts-key`
+## clojure.test Conventions
 
-- JVM options may be given as a space-separated string, or as an alias keyword (`:example-opts`) resolved from `deps.edn` aliases.
-- `chase-opts-key` recursively expands alias keywords; handles both `["-Dfoo=bar"]` vector and `{:jvm-opts [...]}` hash-map forms.
-- Use `get-project-aliases` (merging `:root` and `:project` edn maps) as the alias source.
-
-```clojure
-(defn- chase-opts-key [aliases k]
-  (let [opts-coll (get aliases k)
-        opts-coll (or (:jvm-opts opts-coll) opts-coll)]
-    (when (seq opts-coll)
-      (into [] (mapcat #(if (string? %) [%] (chase-opts-key aliases %))) opts-coll))))
-```
-
-## Test Filtering (focus options)
-
-- Support `:var`, `:include`, and `:exclude` under `:focus` key in options.
-- Use `var-filter` to build a predicate, `filter-vars!` to hide non-matching vars before running, and `restore-vars!` in `finally` to restore them.
-- For LazyTest, rename `:focus` keys using `{:var :var-filter :namespace :ns-filter}` before passing.
+- Import test functions explicitly: `(:require [clojure.test :refer [deftest is]])`.
+- Test files go in `test/` subdirectory of the brick, mirroring the `src/` namespace path.
+- Use inline `:test` metadata on `defn` in `src/` files for self-contained unit tests on pure functions (avoids a separate test file for trivial assertions).
+- Reader conditionals (`#?(:clj ... :cljs ...)`) are required in `.cljc` test files when requiring platform-specific namespaces.
 
 ```clojure
-;; Always restore vars, even on exception
-(try
-  (require test-sym)
-  (filter-vars! test-sym filter-fn)
-  (test/run-tests test-sym)
-  (finally
-    (restore-vars! test-sym)))
-```
-
-## Inline Src Tests
-
-- Public functions may declare inline tests using `{:test (fn [] ...)}` metadata — this is the pattern used in `core.clj` on `bases-msg`.
-- These are included when `:include-src-dir true` is set in options, causing `(conj :src)` to be added to the namespace selectors.
-
-```clojure
+;; Inline :test metadata in src/ (core.clj)
 (defn bases-msg
   {:test (fn [] (is (= nil (bases-msg [] nil))))}
   [base-names color-mode]
   (when (seq base-names)
     [(color/base (str/join ", " base-names) color-mode)]))
+
+;; Standard deftest in test/ (core_test.clj)
+(deftest dummy-test
+  (is (= 1 1)))
+
+;; Reader conditional in .cljc test file
+(ns org.corfield.external-test-runner.interface-test
+  (:require [clojure.test :refer [deftest is]]
+            #?(:clj [org.corfield.external-test-runner.interface])))
 ```
 
-## Polylith Brick Structure
+## Shadow-cljs Dispatch
 
-- Components: `components/<name>/src` (implementation), `components/<name>/test` (tests)
-- Bases: `bases/<name>/src` (entry points), `bases/<name>/test` (tests)
-- Each brick has its own `deps.edn` declaring only its direct dependencies
-- Test files follow `*_test.clj` or `*_test.cljc` naming in the `test/` directory tree
+- Use `defmulti` dispatching on `:target` key from the build map — never use `cond` for target dispatch.
+- Read `shadow-cljs.edn` using `edn/read-string` + `slurp` wrapped in an `io/file`; only read if file exists.
+- Compile via `npx shadow-cljs compile <build>` before running any target.
+- Support `:node-test` (run `node output-to`) and `:karma` (run `npx karma start --single-run`); throw for unsupported targets.
 
-## dialect Detection
+```clojure
+(defmulti shadow-test (fn [_ {:keys [target]} _] target))
 
-- `.clj` and `.cljc` files are CLJ namespaces (`clj-namespace?` predicate)
-- `.cljs` and `.cljc` files are CLJS namespaces (`cljs-namespace?` predicate)
-- Both predicates check `file-path` using `str/ends-with?`
-- `cljc` files satisfy both predicates and are included in both CLJ and CLJS namespace collections
+(defmethod shadow-test :node-test
+  [project-dir {:keys [output-to autorun]} build]
+  (shadow-compile project-dir build)
+  (when-not autorun
+    (run-cmd project-dir ["node" output-to] "Shadow-cljs node test failed" {:output-to output-to})))
+```

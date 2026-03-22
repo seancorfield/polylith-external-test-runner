@@ -1,175 +1,136 @@
 ---
 name: "clojure-polylith"
-description: "Clojure Polylith monorepo with interface/core brick structure, subprocess test execution via ProcessBuilder, and clojure.test + LazyTest support. USE FOR: polylith bricks, interface.clj, core.clj, test namespace filtering, focus options, var-filter, filter-vars, ProcessBuilder, JVM opts, alias chasing, workspace.edn, deps.edn, clojure.test deftest, lazytest, cljc dialects, shadow-cljs, test configuration, inline src tests, colorizer integration, external test runner, ORG_CORFIELD_EXTERNAL_TEST_RUNNER, chase-opts-key, restore-vars. DO NOT USE FOR: React components, frontend UI, Python code, database migrations, REST API routes."
+description: "Clojure Polylith external test runner with ProcessBuilder-based subprocess isolation, Shadow-cljs and cljs-test-runner ClojureScript support, and EDN configuration. USE FOR: polylith bricks, interface.clj, core.clj, test namespace discovery, brick-test-namespaces, project-test-namespaces, ProcessBuilder classpath, shadow-cljs.edn, olical cljs-test-runner, lazytest, clojure.test deftest, EDN config parsing, JVM opts, POLY_TEST_JVM_OPTS, setup-fn teardown-fn, workspace.edn test-configs, var filter include exclude focus options, subprocess test isolation, clj-namespace predicate, cljs-namespace predicate, include-src-dir, ORG_CORFIELD_EXTERNAL_TEST_RUNNER, shadow-build, node-test, karma target. DO NOT USE FOR: JavaScript or TypeScript source files, frontend UI components, REST API routes."
+argument-hint: "[component, feature, or test runner concern]"
+user-invokable: true
+disable-model-invocation: false
 ---
 
 ## Overview
 
-This project is a **Polylith external subprocess test runner** for Clojure. It avoids classloader, daemon thread, and memory issues by running `clojure.test` and LazyTest suites in a fresh Java subprocess with only Clojure as a dependency.
+`polylith-external-test-runner` is a Polylith test runner that executes Clojure and ClojureScript tests in isolated Java subprocesses — avoiding classloader conflicts, daemon thread leaks, and memory accumulation between test runs.
 
-The monorepo is organized as a Polylith workspace with:
-- **Component**: `components/external-test-runner` — the test runner logic (interface + core)
-- **Component**: `components/util` — shared colorizer and string utilities
-- **Base**: `bases/external-test-runner-cli` — the subprocess entry point (`-main`)
-- **Project**: `projects/runner` — the deployable artifact (deps root for `:poly` alias users)
+The workspace contains:
+- **`components/external-test-runner`** — core test runner logic (Polylith component: `interface.clj` + `core.clj`)
+- **`bases/external-test-runner-cli`** — subprocess entry point (`main.clj`) invoked inside the forked JVM
+- **`components/util`** — colorizer and string utilities shared by both layers
+- **`projects/runner`** — deployable project wiring the component and base together
 
 ## Architecture
 
 ```
-workspace.edn           ← Polylith config, :test-configs, :projects
-deps.edn                ← :dev, :poly, :test aliases; alias chains for chase-opts-key
-components/
-  external-test-runner/
-    src/org/corfield/external_test_runner/
-      interface.clj     ← Public API: thin delegation to core only
-      core.clj          ← All logic: ProcessBuilder, JVM opts, namespace filtering
-    test/...            ← *_test.clj / *_test.cljc files
-  util/
-    src/.../color.clj   ← Colorizer (colorizer-ns source root added to classpath)
-bases/
-  external-test-runner-cli/
-    src/org/corfield/external_test_runner_cli/
-      main.clj          ← -main: var-filter, filter-vars!, restore-vars!, lazytest support
-projects/
-  runner/               ← Git deps root consumers add to :poly alias
+clojure -M:poly test
+    └─ Polylith calls interface/create
+         └─ core/create builds ProcessBuilder command
+              └─ java -cp <classpath> clojure.main -m org.corfield.external-test-runner-cli.main
+                   └─ main/-main loads and runs clojure.test / lazytest namespaces
 ```
 
-## Core Patterns
+**Polylith Brick Pattern**
+- `interface.clj` — single-line delegation only: `(defn create [opts] (core/create opts))`
+- `core.clj` — all business logic; implements `test-runner-contract/TestRunner` reify
 
-### Interface/Core Delegation
+## Common Patterns
 
-`interface.clj` contains ONLY thin delegating functions — one line per public function:
-
+### EDN Configuration (three-way merge)
 ```clojure
-(ns org.corfield.external-test-runner.interface
-  (:require [org.corfield.external-test-runner.core :as core]))
-
-(defn create [opts] (core/create opts))
+(let [env-opts  (-> (System/getenv "ORG_CORFIELD_EXTERNAL_TEST_RUNNER") (or "{}") edn/read-string)
+      ws-opts   (-> workspace :settings :test)
+      test-opts (merge (:org.corfield/external-test-runner test-settings)
+                       (:org.corfield/external-test-runner ws-opts)
+                       env-opts)])
+;; Precedence: env var > workspace.edn :test-configs > project test-settings
 ```
 
-### ProcessBuilder Subprocess Execution
-
+### Test Namespace Discovery
 ```clojure
-;; core.clj — java-test-runner
-(let [path-sep  (System/getProperty "path.separator")
-      classpath (str/join path-sep
-                          (->> all-paths
-                               (cons (ns->src colorizer-ns))
-                               (cons (ns->src process-ns))))
-      java-cmd  (-> [(find-java)]
-                    (into java-opts)
-                    (into options-as-jvm)
-                    (into ["-cp" classpath "clojure.main" "-m" process-ns])
-                    (into test-args))
-      pb        (doto (ProcessBuilder. ^List java-cmd)
-                  (.redirectOutput ProcessBuilder$Redirect/INHERIT)
-                  (.redirectError  ProcessBuilder$Redirect/INHERIT))]
+;; File extension predicates
+(defn- clj-namespace?  [{:keys [file-path]}] (or (str/ends-with? file-path ".clj")  (str/ends-with? file-path ".cljc")))
+(defn- cljs-namespace? [{:keys [file-path]}] (or (str/ends-with? file-path ".cljs") (str/ends-with? file-path ".cljc")))
+
+;; Selectors respect :include-src-dir option
+(let [selectors (cond-> [:test] (:include-src-dir test-opts) (conj :src))])
+
+;; Always wrap in delay — dereference only when running
+(def test-nses* (delay (brick-test-namespaces test-opts clj-namespace? bricks bricks-to-test)))
+```
+
+### ProcessBuilder Subprocess
+```clojure
+(let [pb (doto (ProcessBuilder. ^List java-cmd)
+           (.redirectOutput ProcessBuilder$Redirect/INHERIT)
+           (.redirectError  ProcessBuilder$Redirect/INHERIT))]
   (when-not (-> pb (.start) (.waitFor) (zero?))
     (throw (ex-info "External test runner failed" {:process-ns process-ns}))))
 ```
 
-### JVM Option Resolution via `chase-opts-key`
-
-Recursively resolves alias keywords from `deps.edn`, handling both vector and `{:jvm-opts [...]}` forms:
-
+### JVM Opts Resolution
 ```clojure
-;; :example-opts [:sub-opts "-Dfoo=bar" :nested-opts]
-;; :sub-opts ["-Dsub=more"]
-;; :nested-opts {:jvm-opts ["-Dnested=even.more"]}
-;; (chase-opts-key aliases :example-opts)
-;; => ["-Dsub=more" "-Dfoo=bar" "-Dnested=even.more"]
-
+;; From POLY_TEST_JVM_OPTS env var or poly.test.jvm.opts JVM property
+;; If value starts with ":", treat as alias keyword and resolve recursively
 (defn- chase-opts-key [aliases k]
-  (let [opts-coll (get aliases k)
-        opts-coll (or (:jvm-opts opts-coll) opts-coll)]
+  (let [opts-coll (or (:jvm-opts (get aliases k)) (get aliases k))]
     (when (seq opts-coll)
       (into [] (mapcat #(if (string? %) [%] (chase-opts-key aliases %))) opts-coll))))
 ```
 
-Set via `:poly` alias: `:jvm-opts ["-Dpoly.test.jvm.opts=:example-opts"]`
-
-### Test Option Merging (priority order — later wins)
-
+### Shadow-cljs Dispatch
 ```clojure
-(let [env-opts (edn/read-string (or (System/getenv "ORG_CORFIELD_EXTERNAL_TEST_RUNNER") "{}"))
-      ws-opts  (-> workspace :settings :test)
-      options  (merge (:org.corfield/external-test-runner test-settings)   ; project-level
-                      (:org.corfield/external-test-runner ws-opts)          ; workspace-level
-                      env-opts)]                                            ; env var (highest)
-  ...)
+(defmulti shadow-test (fn [_ {:keys [target]} _] target))
+(defmethod shadow-test :node-test [project-dir {:keys [output-to autorun]} build] ...)
+(defmethod shadow-test :karma     [project-dir {:keys [output-to]} build] ...)
+;; :cljs-test-runner options: nil (auto-detect), :shadow/:shadow-cljs, :olical, :none/:ignore
 ```
 
-### Test Filtering (`:focus` options)
-
-In `main.clj`, `var-filter` builds a predicate from `:var`, `:include`, `:exclude`:
-
+### Focus / Var Filtering (CLI side)
 ```clojure
-(let [filter-fn (var-filter (:focus options))]
-  (try
-    (require test-sym)
-    (filter-vars! test-sym filter-fn)     ; hide non-matching vars
-    (test/run-tests test-sym)
-    (finally
-      (restore-vars! test-sym))))         ; always restore
+;; In main.clj — filter test vars by :var, :include (metadata kw), :exclude (metadata kw)
+(defn var-filter [{:keys [var include exclude]}]
+  (let [test-specific  (if var     #((set (keep resolve var)) %) (constantly true))
+        test-inclusion (if include #((apply some-fn include) (meta %)) (constantly true))
+        test-exclusion (if exclude #((complement (apply some-fn exclude)) (meta %)) (constantly true))]
+    #(and (test-specific %) (test-inclusion %) (test-exclusion %))))
 ```
 
-### LazyTest Integration
+## Configuration Reference
 
-```clojure
-(let [lazy-run  (try (requiring-resolve 'lazytest.repl/run-tests) (catch Exception _ nil))
-      lazy-find (try (requiring-resolve 'lazytest.find/find-var-test-value) (catch Exception _ nil))
-      lazy-opts {:var :var-filter :namespace :ns-filter}]
-  (cond-> {:error 0 :fail 0 :pass 0 :skip true}
-    (contains-tests? test-sym is-test?)
-    (merge-summaries (test/run-tests test-sym))
-    (and lazy-run lazy-find (contains-tests? test-sym lazy-find))
-    (merge-summaries (lazy-run test-sym (set/rename-keys (:focus options) lazy-opts)))))
+| Key | Location | Description |
+|-----|----------|-------------|
+| `:include-src-dir` | test-opts | Also scan `:src` namespaces for tests (default `false`) |
+| `:focus {:var [...]}` | test-opts | Run only specific fully-qualified var names |
+| `:focus {:include [:kw]}` | test-opts | Run only tests with matching metadata keywords |
+| `:focus {:exclude [:kw]}` | test-opts | Skip tests with matching metadata keywords |
+| `:cljs-test-runner` | test-opts | `:shadow`/`:shadow-cljs`, `:olical`, `:none`/`:ignore`, or `nil` (auto) |
+| `:shadow-build` | test-opts | Shadow-cljs build key to use (default `:test`) |
+| `POLY_TEST_JVM_OPTS` | env | Space-separated JVM opts or `:alias-kw` for subprocess |
+| `ORG_CORFIELD_EXTERNAL_TEST_RUNNER` | env | Full EDN map to override all config (highest precedence) |
+
+## Project Structure
+
 ```
-
-### Inline Src Tests
-
-Public functions in `src/` can include inline test metadata (run when `:include-src-dir true`):
-
-```clojure
-(defn bases-msg
-  {:test (fn [] (is (= nil (bases-msg [] nil))))}
-  [base-names color-mode]
-  ...)
+bases/
+  external-test-runner-cli/
+    src/org/corfield/external_test_runner_cli/main.clj   ← -main entry for subprocess
+components/
+  external-test-runner/
+    src/org/corfield/external_test_runner/
+      interface.clj   ← (defn create [opts] (core/create opts))
+      core.clj        ← all logic: namespace discovery, ProcessBuilder, Shadow-cljs dispatch
+    test/org/corfield/external_test_runner/
+      core_test.clj       ← clj-only tests
+      interface_test.cljc ← common tests with reader conditionals
+      ignored_test.cljs   ← cljs-only (ignored by default config)
+  util/
+    src/org/corfield/util/interface/
+      color.clj       ← colorizer used by both layers
+workspace.edn         ← :test-configs with :org.corfield/external-test-runner keys
 ```
-
-### Dialect Detection
-
-```clojure
-(defn- clj-namespace? [{:keys [file-path]}]
-  (or (str/ends-with? file-path ".clj")
-      (str/ends-with? file-path ".cljc")))
-
-(defn- cljs-namespace? [{:keys [file-path]}]
-  (or (str/ends-with? file-path ".cljs")
-      (str/ends-with? file-path ".cljc")))
-```
-
-`.cljc` files satisfy both — they appear in both CLJ and CLJS namespace collections.
-
-## workspace.edn Test Configs
-
-```clojure
-;; workspace.edn
-:test-configs
-{:source {:org.corfield/external-test-runner {:include-src-dir true
-                                               :focus {:exclude [:integration]}}}
- :dev    {:org.corfield/external-test-runner {:focus {:include [:dev]}}}
- :dummy  {:org.corfield/external-test-runner
-          {:focus {:var [org.corfield.external-test-runner.core-test/dummy-test]}}}}
-```
-
-Use: `clojure -M:poly test with:source` or `clojure -M:poly test with:source:dev`
 
 ## Pitfalls
 
-- **Don't add logic to `interface.clj`** — it breaks Polylith's API contract model.
-- **`cljc` files match both predicates** — they'll be included in both CLJ and CLJS test collections; this is intentional.
-- **`chase-opts-key` is not cycle-safe** — avoid circular alias references in `deps.edn`.
-- **Shadow CLJS tests** are detected but not yet executed — the `cljs-test-runner` only prints informational messages.
-- **`restore-vars!` must be in `finally`** — failing to restore vars will corrupt subsequent test runs in the same process.
-- **`ns->src` uses classloader resource lookup** — the namespace must be on the classpath at resolution time, not just at subprocess launch time.
+- **Don't put logic in `interface.clj`** — it must be a pure thin delegation or Polylith tooling will flag it.
+- **Don't forget `^List` type hint** on `java-cmd` vector passed to `ProcessBuilder.` or you'll get a reflection warning.
+- **`shadow-cljs.edn` detection is per-project-dir** — use `(.exists (io/file dir "shadow-cljs.edn"))` not classpath scanning.
+- **LazyTest is optional** — always use `requiring-resolve` wrapped in try/catch; never hard-depend on `lazytest` at compile time.
+- **Delays prevent eager evaluation** — always wrap `brick-test-namespaces` / `project-test-namespaces` calls in `(delay ...)` and check `(seq @test-nses*)` before running.
+- **`:none` and `:ignore` are equivalent** for `:cljs-test-runner` — both skip ClojureScript test execution silently.
