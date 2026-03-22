@@ -205,7 +205,7 @@
   (run-cmd project-dir
            ["npx" "shadow-cljs"
             ;; maybe aliases go here?
-            "compile" build]
+            "compile" (name build)]
            "Shadow-cljs compilation failed"
            {:build build}))
 
@@ -221,7 +221,7 @@
              {:output-to output-to})))
 
 (defmethod shadow-test :karma
-  [project-dir {:keys [output-to autorun]} build]
+  [project-dir {:keys [output-to]} build]
   (shadow-compile project-dir build)
   (run-cmd project-dir
            ["npx" "karma" "start" "--single-run"]

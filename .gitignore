@@ -20,3 +20,6 @@
 pom.xml
 pom.xml.asc
 cljs-test-runner-out
+projects/runner/shadow-cljs.edn
+projects/runner/.shadow-cljs/
+projects/runner/out/node-tests.js
