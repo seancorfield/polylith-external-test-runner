@@ -21,14 +21,14 @@
    (or (str/ends-with? file-path ".cljs")
        (str/ends-with? file-path ".cljc")))
 
-(defn brick-test-namespaces [options by-ext bricks test-brick-names]
+(defn brick-test-namespaces [test-opts by-ext bricks test-brick-names]
   (let [nses-fn (fn [selectors]
                   (juxt :name
                         #(mapcat (fn [selector]
                                    (-> % :namespaces selector))
                                  selectors)))
         selectors (cond-> [:test]
-                    (:include-src-dir options)
+                    (:include-src-dir test-opts)
                     (conj :src))
         brick-name->namespaces
         (into {} (map (nses-fn selectors)) bricks)]
@@ -38,16 +38,18 @@
                 (map :namespace))
           test-brick-names)))
 
-(defn project-test-namespaces [options by-ext project-name projects-to-test namespaces]
+(defn project-test-namespaces [test-opts by-ext project-name projects-to-test namespaces]
   (when (contains? (set projects-to-test) project-name)
     (let [nses (cond-> (:test namespaces)
-                 (:include-src-dir options)
+                 (:include-src-dir test-opts)
                  (into (:src namespaces)))]
       (into []
             (comp (filter by-ext)
                   (map :namespace))
             nses))))
 
+;; see https://shadow-cljs.github.io/docs/UsersGuide.html#build-target-defaults
+;; for :build-defaults and :target-defaults
 (defn read-shadow-cljs [project-name projects-to-test dir]
   (when (and (contains? (set projects-to-test) project-name)
              (.exists (io/file dir "shadow-cljs.edn")))
@@ -188,6 +190,50 @@
     (when-not (-> pb (.start) (.waitFor) (zero?))
       (throw (ex-info "External test runner failed" {})))))
 
+(defn- run-cmd [project-dir cmd & [failure-msg failure-data]]
+  (let [pb (doto (ProcessBuilder. ^List cmd)
+             (.directory (io/file project-dir))
+             (.redirectOutput ProcessBuilder$Redirect/INHERIT)
+             (.redirectError  ProcessBuilder$Redirect/INHERIT))]
+    (when-not (-> pb (.start) (.waitFor) (zero?))
+      (throw (ex-info (or failure-msg "Command failed")
+                      (merge {:project-dir project-dir}
+                             (or failure-data {:cmd cmd})))))))
+
+(defn- shadow-compile
+  [project-dir build]
+  (run-cmd project-dir
+           ["npx" "shadow-cljs"
+            ;; maybe aliases go here?
+            "compile" build]
+           "Shadow-cljs compilation failed"
+           {:build build}))
+
+(defmulti shadow-test (fn [_ {:keys [target]} _] target))
+
+(defmethod shadow-test :node-test
+  [project-dir {:keys [output-to autorun]} build]
+  (shadow-compile project-dir build)
+  (when-not autorun
+    (run-cmd project-dir
+             ["node" output-to]
+             "Shadow-cljs node test failed"
+             {:output-to output-to})))
+
+(defmethod shadow-test :karma
+  [project-dir {:keys [output-to autorun]} build]
+  (shadow-compile project-dir build)
+  (run-cmd project-dir
+           ["npx" "karma" "start" "--single-run"]
+           "Shadow-cljs Karma test failed"
+           {:output-to output-to}))
+
+(defmethod shadow-test :default
+  [_ {:keys [target]} build]
+  (throw (ex-info (str "Unsupported Shadow-cljs test target: " target
+                       " in selected build: " build)
+                  {:target target :build build})))
+
 (defn- cljs-test-runner
   [all-paths setup-fn teardown-fn project-dir test-cljs* shadow* java-opts opts]
   (when setup-fn
@@ -196,18 +242,13 @@
     (println "\nteardown-fn not supported for ClojureScript tests, ignoring" teardown-fn))
   (cond
     @shadow*
-    (do
-      (println "\nNote: Shadow CLJS tests are not yet supported by this test runner.")
-      (let [build  (-> opts :test-settings :shadow-build (or :test))
-            target (-> @shadow* :builds build :target)]
-        (if target
-          (do
-            (println "Selected build and target:" build target "in:" project-dir)
-            (println "We would test:" (str/join ", " @test-cljs*)))
-          (do
-            (println "Unable to determine Shadow CLJS build or target in:" project-dir)
-            (println "Available builds: " (-> @shadow* :builds (keys)))
-            (println "Available targets:" (->> @shadow* :builds (vals) (map :target)))))))
+    (let [build-key (-> opts :shadow-build (or :test))
+          build-map (-> @shadow* :builds build-key)]
+      (if (:target build-map)
+        (shadow-test project-dir build-map build-key)
+        (throw (ex-info (str "Unable to determine Shadow-cljs build or target in: " project-dir)
+                        {:builds  (-> @shadow* :builds (keys))
+                         :targets (->> @shadow* :builds (vals) (map :target))}))))
 
     (seq (filter #(re-find #"olical" %) all-paths))
     (olical-test-runner all-paths test-cljs* java-opts opts)
@@ -217,36 +258,36 @@
 
 (defn create
   [{:keys [workspace project test-settings] :as all}]
-  (let [env-opts (-> (System/getenv "ORG_CORFIELD_EXTERNAL_TEST_RUNNER")
-                     (or "{}")
-                     (edn/read-string))
-        ws-opts (-> workspace :settings :test)
-        options (merge (:org.corfield/external-test-runner test-settings)
-                       (:org.corfield/external-test-runner ws-opts)
-                       env-opts)
+  (let [env-opts  (-> (System/getenv "ORG_CORFIELD_EXTERNAL_TEST_RUNNER")
+                      (or "{}")
+                      (edn/read-string))
+        ws-opts   (-> workspace :settings :test)
+        test-opts (merge (:org.corfield/external-test-runner test-settings)
+                         (:org.corfield/external-test-runner ws-opts)
+                         env-opts)
         _
-        (when (seq options)
+        (when (seq test-opts)
           (println "Test runner options:")
-          (doseq [[k v] options]
+          (doseq [[k v] test-opts]
             (println " " k "=>" v))
           (println ""))
         {:keys [bases components]} workspace
         {:keys [namespaces paths project-dir projects-to-test]
          project-name :name} project
-        bricks-to-test (if (:include-src-dir options)
+        bricks-to-test (if (:include-src-dir test-opts)
                          (or (:bricks-to-test-all-sources project)
                              (:bricks-to-test project))
                          (:bricks-to-test project))
 
         ;; TODO: if the project tests aren't to be run, we might further narrow this down
         test-sources-present (-> paths :test seq)
-        test-nses*     (->> [(brick-test-namespaces options clj-namespace? (into components bases) bricks-to-test)
-                             (project-test-namespaces options clj-namespace? project-name projects-to-test namespaces)]
+        test-nses*     (->> [(brick-test-namespaces test-opts clj-namespace? (into components bases) bricks-to-test)
+                             (project-test-namespaces test-opts clj-namespace? project-name projects-to-test namespaces)]
                             (into [] cat)
                             (delay))
         shadow*        (delay (read-shadow-cljs project-name projects-to-test project-dir))
-        test-cljs*     (->> [(brick-test-namespaces options cljs-namespace? (into components bases) bricks-to-test)
-                             (project-test-namespaces options cljs-namespace? project-name projects-to-test namespaces)]
+        test-cljs*     (->> [(brick-test-namespaces test-opts cljs-namespace? (into components bases) bricks-to-test)
+                             (project-test-namespaces test-opts cljs-namespace? project-name projects-to-test namespaces)]
                             (into [] cat)
                             (delay))
         java-opts      (or (System/getenv "POLY_TEST_JVM_OPTS")
@@ -259,9 +300,9 @@
         ;; turn the options hash into a vector of JVM options that the CLI
         ;; test runner can recognize:
         options-as-jvm (cond-> []
-                         (seq options)
+                         (seq test-opts)
                          (conj (str "-Dorg.corfield.external-test-runner.opts="
-                                    (pr-str options))))]
+                                    (pr-str test-opts))))]
 
     (reify test-runner-contract/TestRunner
       (test-runner-name [_] "Polylith org.corfield.external-test-runner")
@@ -283,6 +324,6 @@
                                 project-name test-nses* options-as-jvm java-opts))
             (when (seq @test-cljs*)
               (cljs-test-runner all-paths setup-fn teardown-fn project-dir
-                                test-cljs* shadow* java-opts options)))))
+                                test-cljs* shadow* java-opts test-opts)))))
       test-runner-contract/ExternalTestRunner
       (external-process-namespace [_] my-runner-ns))))
