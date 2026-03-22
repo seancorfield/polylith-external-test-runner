@@ -6,10 +6,11 @@ Avoids classloader, daemon thread, and memory usage issues
 by running tests in a (Java) subprocess with only Clojure itself as a
 dependency.
 
-As of v0.8.0, will run ClojureScript tests if either a `shadow-cljs.edn` file
+As of v0.8.0, can run ClojureScript tests if either a `shadow-cljs.edn` file
 is present in the project directory, or if
 [cljs-test-runner](https://github.com/olical/cljs-test-runner)
 is specified as a `:test` dependency in a project's `deps.edn` file.
+See also the `:cljs-test-runner` option in **Test Configuration** below.
 
 ## Usage
 
@@ -103,6 +104,13 @@ The same `:focus` options are supported for LazyTest as for Cognitect's test run
 specify `:output`, under `:focus`, as a symbol to control the reporting of
 test passes and failures. Test suites can contain a mix of both
 `clojure.test`-compatible tests and LazyTest tests.
+
+As of v0.8.0, you can control if or how ClojureScript tests are run, via the
+`:cljs-test-runner` option:
+* not specified -- the test runner will look for `shadow-cljs.edn` in the project or the `olical/cljs-test-runner` dependency, and run ClojureScript tests if either is found (via Shadow-cljs or `olical/cljs-test-runner` respectively); if neither are found and there are files to test, a warning is printed,
+* `:shadow` -- will run ClojureScript tests via Shadow-cljs if a `shadow-cljs.edn` file is found in the project directory (it is an error if the file is not found); `:shadow-cljs` is an alias for this value,
+* `:olical` -- will run ClojureScript tests via `olical/cljs-test-runner` if the dependency is found (it is an error if the dependency is not found),
+* `:none` or `:ignore` -- will not run ClojureScript tests.
 
 As of v0.8.0, if you are using Shadow-cljs, you can specify the
 Shadow-cljs build to use for running tests, via the `:shadow-build` option.
