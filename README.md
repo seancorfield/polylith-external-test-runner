@@ -30,7 +30,7 @@ io.github.seancorfield/polylith-external-test-runner
  :deps/root "projects/runner"}
 ```
 
-Use `:git/sha "23a0405d0e1080ac53d0b5183479768dc678085a"` (and no `:git/tag`)
+Use `:git/sha "ad5af727314561dd43441e8814384a602f2a9157"` (and no `:git/tag`)
 if you want to try out the ClojureScript support coming in v0.8.0.
 
 In your `workspace.edn` file, either add this global configuration
