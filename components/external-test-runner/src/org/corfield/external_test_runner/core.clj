@@ -132,6 +132,18 @@
          "'"))
   )
 
+(defn- run-cmd [project-dir cmd & [failure-msg failure-data]]
+  (let [pb (doto (ProcessBuilder. ^List cmd)
+             (.redirectOutput ProcessBuilder$Redirect/INHERIT)
+             (.redirectError  ProcessBuilder$Redirect/INHERIT))]
+    (when project-dir
+      (.directory pb (io/file project-dir)))
+    (when-not (-> pb (.start) (.waitFor) (zero?))
+      (throw (ex-info (or failure-msg "Command failed")
+                      (merge (when project-dir
+                               {:project-dir project-dir})
+                             (or failure-data {:cmd cmd})))))))
+
 (defn- java-test-runner
   [all-paths setup-fn teardown-fn process-ns color-mode
    project-name test-nses* options-as-jvm java-opts]
@@ -154,12 +166,8 @@
                         (into options-as-jvm))
                       (into ["-cp" classpath
                              "clojure.main" "-m" process-ns])
-                      (into test-args))
-        pb        (doto (ProcessBuilder. ^List java-cmd)
-                    (.redirectOutput ProcessBuilder$Redirect/INHERIT)
-                    (.redirectError  ProcessBuilder$Redirect/INHERIT))]
-    (when-not (-> pb (.start) (.waitFor) (zero?))
-      (throw (ex-info "External test runner failed" {:process-ns process-ns})))))
+                      (into test-args))]
+    (run-cmd nil java-cmd "External test runner failed" {:process-ns process-ns})))
 
 (defn- olical-test-runner
   [all-paths test-nses* java-opts opts]
@@ -183,22 +191,8 @@
                         (into java-opts))
                       (into ["-cp" classpath
                              "clojure.main" "-m" "cljs-test-runner.main"])
-                      (into test-args))
-        pb        (doto (ProcessBuilder. ^List java-cmd)
-                    (.redirectOutput ProcessBuilder$Redirect/INHERIT)
-                    (.redirectError  ProcessBuilder$Redirect/INHERIT))]
-    (when-not (-> pb (.start) (.waitFor) (zero?))
-      (throw (ex-info "External test runner failed" {})))))
-
-(defn- run-cmd [project-dir cmd & [failure-msg failure-data]]
-  (let [pb (doto (ProcessBuilder. ^List cmd)
-             (.directory (io/file project-dir))
-             (.redirectOutput ProcessBuilder$Redirect/INHERIT)
-             (.redirectError  ProcessBuilder$Redirect/INHERIT))]
-    (when-not (-> pb (.start) (.waitFor) (zero?))
-      (throw (ex-info (or failure-msg "Command failed")
-                      (merge {:project-dir project-dir}
-                             (or failure-data {:cmd cmd})))))))
+                      (into test-args))]
+    (run-cmd nil java-cmd "cljs-test-runner failed" {})))
 
 (defn- shadow-compile
   [project-dir build]
