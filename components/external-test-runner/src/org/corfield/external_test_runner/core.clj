@@ -213,12 +213,14 @@
 
 (defn- shadow-compile
   [project-dir build]
-  (run-cmd project-dir
-           ["npx" "shadow-cljs"
-            ;; maybe aliases go here?
-            "compile" (name build)]
-           "Shadow-cljs compilation failed"
-           {:build build}))
+  (let [shadow-cmd (-> (System/getenv "SHADOW_CMD")
+                       (or "npx shadow-cljs")
+                       (str/split #" "))]
+    (run-cmd project-dir
+             (into shadow-cmd [; maybe aliases go here?
+                               "compile" (name build)])
+             "Shadow-cljs compilation failed"
+             {:build build})))
 
 (defmulti shadow-test (fn [_ {:keys [target]} _] target))
 

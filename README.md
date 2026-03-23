@@ -116,6 +116,8 @@ As of v0.8.0, if you are using Shadow-cljs, you can specify the
 Shadow-cljs build to use for running tests, via the `:shadow-build` option.
 The default is the `:test` build, but you can specify any build that
 has a supported `:target` (currently `:node-test` and `:karma` are supported).
+You can specify the command to run Shadow-cljs via the `SHADOW_CMD` environment
+variable, which defaults to `npx shadow-cljs`.
 
 ### Polylith 0.2.20+
 
