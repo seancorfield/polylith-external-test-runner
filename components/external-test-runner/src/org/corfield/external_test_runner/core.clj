@@ -190,6 +190,9 @@
   [all-paths test-nses* java-opts opts]
   (let [path-sep  (System/getProperty "path.separator")
         classpath (str/join path-sep (cons (ns->src colorizer-ns) all-paths))
+        ;; this will include git deps too so we should filter those out
+        ;; this should also exclude `src` directories unless :include-src-dir
+        ;; is set...
         src-test  (filter #(let [f (io/file %)]
                              (and (.exists f) (.isDirectory f))) all-paths)
         {:keys [var include exclude]} (:focus opts)
@@ -212,21 +215,34 @@
     (run-cmd nil java-cmd "cljs-test-runner failed" {})))
 
 (defn- shadow-compile
-  [project-dir build]
-  (let [shadow-cmd (-> (System/getenv "SHADOW_CMD")
-                       (or "npx shadow-cljs")
-                       (str/split #" "))]
-    (run-cmd project-dir
-             (into shadow-cmd [; maybe aliases go here?
-                               "compile" (name build)])
-             "Shadow-cljs compilation failed"
-             {:build build})))
+  [project-dir build all-paths test-nses]
+  (let [path-sep  (System/getProperty "path.separator")
+        ;; we run shadow in projects/*/ (i.e., project-dir), so we need to
+        ;; adjust the classpath entries to be relative to that:
+        ;; this will include git deps too so we should filter those out
+        ;; this should also exclude `src` directories unless :include-src-dir
+        ;; is set...
+        classpath (str/join path-sep
+                            (map #(let [f (io/file %)]
+                                    (if (and (.exists f) (.isDirectory f))
+                                      (str "../../" %)
+                                      %))
+                                 all-paths))
+        shadow-cmd (-> [(find-java)]
+                       (into ["-cp" classpath
+                              "clojure.main" "-m" "shadow.cljs.devtools.cli"]))
+        only-nses  (when (seq test-nses)
+                     ["--config-merge"
+                      (pr-str {:namespaces (mapv symbol test-nses)})])
+        cmd        (cond-> (into shadow-cmd ["compile" (name build)])
+                     only-nses (into only-nses))]
+    (run-cmd project-dir cmd "Shadow-cljs compilation failed" {:build build})))
 
-(defmulti shadow-test (fn [_ {:keys [target]} _] target))
+(defmulti shadow-test (fn [_ {:keys [target]} _ _ _] target))
 
 (defmethod shadow-test :node-test
-  [project-dir {:keys [output-to autorun]} build]
-  (shadow-compile project-dir build)
+  [project-dir {:keys [output-to autorun]} build all-paths test-nses]
+  (shadow-compile project-dir build all-paths test-nses)
   (when-not autorun
     (run-cmd project-dir
              ["node" output-to]
@@ -234,15 +250,15 @@
              {:output-to output-to})))
 
 (defmethod shadow-test :karma
-  [project-dir {:keys [output-to]} build]
-  (shadow-compile project-dir build)
+  [project-dir {:keys [output-to]} build all-paths test-nses]
+  (shadow-compile project-dir build all-paths test-nses)
   (run-cmd project-dir
            ["npx" "karma" "start" "--single-run"]
            "Shadow-cljs Karma test failed"
            {:output-to output-to}))
 
 (defmethod shadow-test :default
-  [_ {:keys [target]} build]
+  [_ {:keys [target]} build _ _]
   (throw (ex-info (str "Unsupported Shadow-cljs test target: " target
                        " in selected build: " build)
                   {:target target :build build})))
@@ -258,7 +274,7 @@
     (let [build-key (-> test-opts :shadow-build (or :test))
           build-map (-> @shadow* :builds build-key)]
       (if (:target build-map)
-        (shadow-test project-dir build-map build-key)
+        (shadow-test project-dir build-map build-key all-paths @test-cljs*)
         (throw (ex-info (str "Unable to determine Shadow-cljs build or target in: " project-dir)
                         {:builds  (-> @shadow* :builds (keys))
                          :targets (->> @shadow* :builds (vals) (map :target))}))))

@@ -3,9 +3,9 @@
 * v0.8.0 in progress
   * Add `:cljs-test-runner` option to the `:org.corfield/external-test-runner` test settings, which can be set to `:shadow` (or `:shadow-cljs`), `:olical`, or `:none` (or `:ignore`) to control whether and how ClojureScript tests are run.
   * Address [#18](https://github.com/seancorfield/polylith-external-test-runner/issues/18) by adding basic support for running ClojureScript tests via Shadow-cljs, inspired by PR [#19](https://github.com/seancorfield/polylith-external-test-runner/pull/19) from [@itai-spiritt](https://github.com/itai-spiritt).
+    * Shadow-cljs should be a `:test` dependency in the project's `deps.edn` file, in addition to a `shadow-cljs.edn` file being present in the project directory, for this to work.
     * Supports `:shadow-build` in test settings to select the Shadow-clj build.
     * Supports `shadow-cljs.edn` with `:build-defaults` and `:target-defaults`.
-    * Supports `SHADOW_CMD` environment variable to specify the command to run Shadow-cljs (default `npx shadow-cljs`).
   * Address [#17](https://github.com/seancorfield/polylith-external-test-runner/issues/17) by adding basic support for running ClojureScript tests via [cljs-test-runner](https://github.com/olical/cljs-test-runner).
   * Update dev/test deps; testing against Polylith 0.3.32.
 

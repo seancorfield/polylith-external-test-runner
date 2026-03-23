@@ -6,10 +6,11 @@ Avoids classloader, daemon thread, and memory usage issues
 by running tests in a (Java) subprocess with only Clojure itself as a
 dependency.
 
-As of v0.8.0, can run ClojureScript tests if either a `shadow-cljs.edn` file
-is present in the project directory, or if
-[cljs-test-runner](https://github.com/olical/cljs-test-runner)
-is specified as a `:test` dependency in a project's `deps.edn` file.
+As of v0.8.0, can run ClojureScript tests if either:
+
+* a `shadow-cljs.edn` file is present in the project directory and [shadow-cljs](https://github.com/thheller/shadow-cljs) is specified as a `:test` dependency in a project's `deps.edn` file,
+* [cljs-test-runner](https://github.com/olical/cljs-test-runner) is specified as a `:test` dependency in a project's `deps.edn` file.
+
 See also the `:cljs-test-runner` option in **Test Configuration** below.
 
 ## Usage
@@ -107,6 +108,7 @@ test passes and failures. Test suites can contain a mix of both
 
 As of v0.8.0, you can control if or how ClojureScript tests are run, via the
 `:cljs-test-runner` option:
+
 * not specified -- the test runner will look for `shadow-cljs.edn` in the project or the `olical/cljs-test-runner` dependency, and run ClojureScript tests if either is found (via Shadow-cljs or `olical/cljs-test-runner` respectively); if neither are found and there are files to test, a warning is printed,
 * `:shadow` -- will run ClojureScript tests via Shadow-cljs if a `shadow-cljs.edn` file is found in the project directory (it is an error if the file is not found); `:shadow-cljs` is an alias for this value,
 * `:olical` -- will run ClojureScript tests via `olical/cljs-test-runner` if the dependency is found (it is an error if the dependency is not found),
@@ -116,8 +118,9 @@ As of v0.8.0, if you are using Shadow-cljs, you can specify the
 Shadow-cljs build to use for running tests, via the `:shadow-build` option.
 The default is the `:test` build, but you can specify any build that
 has a supported `:target` (currently `:node-test` and `:karma` are supported).
-You can specify the command to run Shadow-cljs via the `SHADOW_CMD` environment
-variable, which defaults to `npx shadow-cljs`.
+Shadow-cljs **must** be specified as a `:test` dependency in the project's
+`deps.edn` file, in addition to a `shadow-cljs.edn` file being present in the
+project directory, for this to work.
 
 ### Polylith 0.2.20+
 
