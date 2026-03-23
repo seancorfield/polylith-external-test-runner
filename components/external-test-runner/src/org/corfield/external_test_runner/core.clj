@@ -50,10 +50,27 @@
 
 ;; see https://shadow-cljs.github.io/docs/UsersGuide.html#build-target-defaults
 ;; for :build-defaults and :target-defaults
+(defn merge-shadow-defaults
+  "Merge :build-defaults and :target-defaults into each build in :builds.
+  Precedence (last wins): build-defaults < target-defaults for build's :target < build-specific."
+  [{:keys [build-defaults target-defaults builds] :as shadow-edn}]
+  (if (or (seq build-defaults) (seq target-defaults))
+    (assoc shadow-edn :builds
+           (into {}
+                 (map (fn [[k build]]
+                        [k (merge build-defaults
+                                  (get target-defaults (:target build))
+                                  build)]))
+                 builds))
+    shadow-edn))
+
 (defn read-shadow-cljs [project-name projects-to-test dir]
   (when (and (contains? (set projects-to-test) project-name)
              (.exists (io/file dir "shadow-cljs.edn")))
-    (edn/read-string (slurp (io/file dir "shadow-cljs.edn")))))
+    (-> (io/file dir "shadow-cljs.edn")
+        (slurp)
+        (edn/read-string)
+        (merge-shadow-defaults))))
 
 (defn components-msg [component-names color-mode]
   (when (seq component-names)
