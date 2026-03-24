@@ -162,3 +162,7 @@ External test runner copyright (c) 2022-2026, Sean Corfield,
 Apache Source License 2.0.
 
 Colorizer and string util code copyright (c) 2020-2021, Joakim Tengstrand and others, Eclipse Public License 1.0.
+
+## Links
+
+[![Hypercommit](https://img.shields.io/badge/Hypercommit-DB2475)](https://hypercommit.com/polylith-external-test-runner)
