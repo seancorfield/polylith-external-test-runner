@@ -27,12 +27,9 @@ make this test-runner available:
 
 ```clojure
 io.github.seancorfield/polylith-external-test-runner
-{:git/tag "v0.7.0" :git/sha "9d885c0" -- supports Polylith 0.3.0 and later
+{:git/tag "v0.8.0" :git/sha "2ad770c" -- supports Polylith 0.3.0 and later
  :deps/root "projects/runner"}
 ```
-
-Use `:git/sha "5eb7a3227744f64ba9e4726ec559bae3a5b6363b"` (and no `:git/tag`)
-if you want to try out the ClojureScript support coming in v0.8.0.
 
 In your `workspace.edn` file, either add this global configuration
 to run all of your projects' tests in subprocesses:
