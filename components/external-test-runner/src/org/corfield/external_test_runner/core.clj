@@ -187,15 +187,19 @@
     (run-cmd nil java-cmd "External test runner failed" {:process-ns process-ns})))
 
 (defn- olical-test-runner
-  [all-paths test-nses* java-opts opts]
+  [all-paths test-nses* java-opts test-opts]
   (let [path-sep  (System/getProperty "path.separator")
         classpath (str/join path-sep (cons (ns->src colorizer-ns) all-paths))
-        ;; this will include git deps too so we should filter those out
-        ;; this should also exclude `src` directories unless :include-src-dir
-        ;; is set...
+        src-fn    (if (:include-src-dir test-opts)
+                    (constantly true)
+                    #(re-find #"[/\\]test$" %))
         src-test  (filter #(let [f (io/file %)]
-                             (and (.exists f) (.isDirectory f))) all-paths)
-        {:keys [var include exclude]} (:focus opts)
+                             (and (.exists f)
+                                  (.isDirectory f)
+                                  (not (.isAbsolute f))
+                                  (src-fn %)))
+                          all-paths)
+        {:keys [var include exclude]} (:focus test-opts)
         test-args (-> []
                       (into (mapcat #(vector "-d" (str %))) src-test)
                       (into (mapcat #(vector "-n" (str %))) (deref test-nses*))
@@ -219,18 +223,16 @@
   (let [path-sep  (System/getProperty "path.separator")
         ;; we run shadow in projects/*/ (i.e., project-dir), so we need to
         ;; adjust the classpath entries to be relative to that:
-        ;; this will include git deps too so we should filter those out
-        ;; this should also exclude `src` directories unless :include-src-dir
-        ;; is set...
         classpath (str/join path-sep
                             (map #(let [f (io/file %)]
-                                    (if (and (.exists f) (.isDirectory f))
+                                    (if (and (.exists f)
+                                             (not (.isAbsolute f)))
                                       (str "../../" %)
                                       %))
                                  all-paths))
         shadow-cmd (-> (cond-> [(find-java)]
-                        java-opts
-                        (into java-opts))
+                         java-opts
+                         (into java-opts))
                        (into ["-cp" classpath
                               "clojure.main" "-m" "shadow.cljs.devtools.cli"]))
         only-nses  (when (seq test-nses)
