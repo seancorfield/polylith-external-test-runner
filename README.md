@@ -46,7 +46,7 @@ to run all of your projects' tests in subprocesses:
 Alternatively, to run just specific projects in subprocesses,
 add that `:create-test-runner` entry to those specific projects.
 
-See also **Test Configuration** below for new functionality available with Polylith 0.2.20+.
+See also **Test Configuration** below for more control.
 
 ### Finding Java
 
@@ -75,7 +75,7 @@ The value of the environment variables or the JVM property should either be:
 
 The latter allows multiple options to be specified more easily, and also
 allows for other aliases to be used in those vectors of options, which are
-looked up recursively (a similar ability has been [proposed for `tools.deps.alpha`](https://clojure.atlassian.net/browse/TDEPS-184)).
+looked up recursively (a similar ability has been [proposed for `tools.deps`](https://clojure.atlassian.net/browse/TDEPS-184)).
 See this project's [`deps.edn` file](https://github.com/seancorfield/polylith-external-test-runner/blob/main/deps.edn)
 for an example (which is used in the tests for this project).
 
@@ -84,14 +84,12 @@ making it easier to reuse existing aliases for the testing context.
 
 ## Test Configuration
 
-> Note: this functionality was added in v0.5.0, for use with Polylith 0.2.20 or later.
-
 By default, this test runner only looks for tests in the `test` directories
 of bricks and projects. You can configure it to also looks for tests in the
 `src` directories as well, using the `:include-src-dir true` option (the
 default is `false`).
 
-In addition, like the [Cognitect's test runner](https://github.com/cognitect-labs/test-runner),
+In addition, like [Cognitect's test runner](https://github.com/cognitect-labs/test-runner),
 you can specify that only certain tests should be run, either by specifying
 a collection of fully-qualified test names (`:var`), or by specifying
 keywords to include or exclude tests via metadata (`:include` and `:exclude`).
@@ -122,7 +120,7 @@ Shadow-cljs **must** be specified as a `:test` dependency in the project's
 `deps.edn` file, in addition to a `shadow-cljs.edn` file being present in the
 project directory, for this to work.
 
-### Polylith 0.2.20+
+### Polylith `:test-configs`
 
 You can
 provide these options in `workspace.edn` under the `:test-configs` key, and
@@ -149,8 +147,6 @@ directories, or `clojure -M:poly test with:slow` to run only tests defined with 
 See [Test configuration](https://cljdoc.org/d/polylith/clj-poly/CURRENT/doc/test-runners#test-configuration)
 in the Polylith documentation for more details.
 
-> Note: whether you use a single value or a vector for `:create-test-runner` matters in Polylith 0.2.20+ when you use the new `with` syntax for test configurations.
-
 ### Configuration Via Environment Variable
 
 If you are using an earlier version of Polylith, you can provide these options
@@ -161,7 +157,7 @@ that is read as an EDN hash map:
 ORG_CORFIELD_EXTERNAL_TEST_RUNNER="{:include-src-dir true}" clojure -M:poly test
 ```
 
-> Note: you can also use the environment variable with Polylith 0.2.20+ to override `:include-src-dir` or `:focus` from the `:test-configs` setting, via a simple merge.
+> Note: you can also use the environment variable to override `:include-src-dir` or `:focus` from the `:test-configs` setting, via a simple merge.
 
 ## License & Copyright
 
