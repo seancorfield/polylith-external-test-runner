@@ -1,5 +1,8 @@
 # Changes
 
+* v0.8.1 -- in progress
+  * Address [#20](https://github.com/seancorfield/polylith-external-test-runner/issues/20) by adding `:shadow-optimize` option to control whether Shadow-cljs uses `compile` (unoptimized dev build, the default, equivalent to `:dev`) or `release` (Closure-optimized production build, via `:release`).
+
 * v0.8.0 2ad770c -- 2026-03-24
   * Add `:cljs-test-runner` option to the `:org.corfield/external-test-runner` test settings, which can be set to `:shadow` (or `:shadow-cljs`), `:olical`, or `:none` (or `:ignore`) to control whether and how ClojureScript tests are run.
   * Address [#18](https://github.com/seancorfield/polylith-external-test-runner/issues/18) by adding basic support for running ClojureScript tests via Shadow-cljs, inspired by PR [#19](https://github.com/seancorfield/polylith-external-test-runner/pull/19) from [@itai-spiritt](https://github.com/itai-spiritt).

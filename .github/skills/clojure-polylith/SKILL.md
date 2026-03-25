@@ -102,6 +102,7 @@ clojure -M:poly test
 | `:focus {:exclude [:kw]}` | test-opts | Skip tests with matching metadata keywords |
 | `:cljs-test-runner` | test-opts | `:shadow`/`:shadow-cljs`, `:olical`, `:none`/`:ignore`, or `nil` (auto) |
 | `:shadow-build` | test-opts | Shadow-cljs build key to use (default `:test`) |
+| `:shadow-optimize` | test-opts | `:dev` (default, use `compile`) or `:release` (use `release`) |
 | `POLY_TEST_JVM_OPTS` | env | Space-separated JVM opts or `:alias-kw` for subprocess |
 | `ORG_CORFIELD_EXTERNAL_TEST_RUNNER` | env | Full EDN map to override all config (highest precedence) |
 
