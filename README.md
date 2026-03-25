@@ -117,6 +117,12 @@ Shadow-cljs **must** be specified as a `:test` dependency in the project's
 `deps.edn` file, in addition to a `shadow-cljs.edn` file being present in the
 project directory, for this to work.
 
+You can also control whether Shadow-cljs compiles tests using a development
+build or a release (optimized) build, via the `:shadow-optimize` option:
+
+* not specified or `:dev` (default) -- use `compile` (unoptimized dev build),
+* `:release` -- use `release` (Closure-optimized production build).
+
 ### Polylith `:test-configs`
 
 You can
