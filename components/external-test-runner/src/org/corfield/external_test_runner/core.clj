@@ -21,6 +21,31 @@
    (or (str/ends-with? file-path ".cljs")
        (str/ends-with? file-path ".cljc")))
 
+(defn parse-test-shard
+  "Parse a shard spec string like \"2/4\" into [shard-index shard-count].
+  Returns nil if the string is nil or not a valid shard spec.
+  shard-index is 1-based."
+  [s]
+  (when (and s (re-matches #"\d+/\d+" s))
+    (let [[idx cnt] (str/split s #"/")
+          idx (parse-long idx)
+          cnt (parse-long cnt)]
+      (when (and (pos? cnt) (<= 1 idx cnt))
+        [idx cnt]))))
+
+(defn shard-namespaces
+  "Given a sequence of namespace strings and a shard spec [index count],
+  return only the namespaces belonging to that shard.
+  Namespaces are sorted alphabetically for deterministic sharding,
+  then distributed round-robin across shards."
+  [nses [shard-index shard-count]]
+  (let [sorted (vec (sort nses))]
+    (into []
+          (comp (map-indexed vector)
+                (filter (fn [[i _]] (= (mod i shard-count) (dec shard-index))))
+                (map second))
+          sorted)))
+
 (defn brick-test-namespaces [test-opts by-ext bricks test-brick-names]
   (let [nses-fn (fn [selectors]
                   (juxt :name
@@ -330,16 +355,20 @@
 
         ;; TODO: if the project tests aren't to be run, we might further narrow this down
         test-sources-present (-> paths :test seq)
-        test-nses*     (->> [(brick-test-namespaces test-opts clj-namespace? (into components bases) bricks-to-test)
-                             (project-test-namespaces test-opts clj-namespace? project-name projects-to-test namespaces)]
-                            (into [] cat)
-                            (delay))
+        shard-spec   (parse-test-shard (System/getenv "POLY_TEST_SHARD"))
+        _            (when shard-spec
+                       (println (str "Test sharding: running shard " (first shard-spec)
+                                     " of " (second shard-spec))))
+        test-nses*     (delay
+                        (cond-> (into [] cat [(brick-test-namespaces test-opts clj-namespace? (into components bases) bricks-to-test)
+                                              (project-test-namespaces test-opts clj-namespace? project-name projects-to-test namespaces)])
+                          shard-spec (shard-namespaces shard-spec)))
         shadow*        (delay (when shadow?
                                 (read-shadow-cljs project-name projects-to-test project-dir)))
-        test-cljs*     (->> [(brick-test-namespaces test-opts cljs-namespace? (into components bases) bricks-to-test)
-                             (project-test-namespaces test-opts cljs-namespace? project-name projects-to-test namespaces)]
-                            (into [] cat)
-                            (delay))
+        test-cljs*     (delay
+                        (cond-> (into [] cat [(brick-test-namespaces test-opts cljs-namespace? (into components bases) bricks-to-test)
+                                              (project-test-namespaces test-opts cljs-namespace? project-name projects-to-test namespaces)])
+                          shard-spec (shard-namespaces shard-spec)))
         java-opts      (or (System/getenv "POLY_TEST_JVM_OPTS")
                            (System/getProperty "poly.test.jvm.opts"))
         opt-key        (when (and java-opts (re-find #"^:[-a-zA-Z0-9]+$" java-opts))

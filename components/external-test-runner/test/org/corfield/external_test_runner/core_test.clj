@@ -55,3 +55,69 @@
           result (core/merge-shadow-defaults shadow)]
       (is (= {:output-dir "out"} (:build-defaults result)))
       (is (= {:node-test {:autorun true}} (:target-defaults result))))))
+
+(deftest parse-test-shard-test
+  (testing "valid shard specs"
+    (is (= [1 4] (core/parse-test-shard "1/4")))
+    (is (= [2 4] (core/parse-test-shard "2/4")))
+    (is (= [4 4] (core/parse-test-shard "4/4")))
+    (is (= [1 1] (core/parse-test-shard "1/1"))))
+
+  (testing "invalid shard specs return nil"
+    (is (nil? (core/parse-test-shard nil)))
+    (is (nil? (core/parse-test-shard "")))
+    (is (nil? (core/parse-test-shard "abc")))
+    (is (nil? (core/parse-test-shard "0/4")))
+    (is (nil? (core/parse-test-shard "5/4")))
+    (is (nil? (core/parse-test-shard "1/0")))))
+
+(deftest shard-namespaces-test
+  (testing "splits namespaces across shards round-robin"
+    (let [nses ["d.ns" "b.ns" "a.ns" "c.ns" "e.ns" "f.ns"]]
+      ;; sorted: ["a.ns" "b.ns" "c.ns" "d.ns" "e.ns" "f.ns"]
+      ;; shard 1/3: indices 0, 3 -> ["a.ns" "d.ns"]
+      ;; shard 2/3: indices 1, 4 -> ["b.ns" "e.ns"]
+      ;; shard 3/3: indices 2, 5 -> ["c.ns" "f.ns"]
+      (is (= ["a.ns" "d.ns"] (core/shard-namespaces nses [1 3])))
+      (is (= ["b.ns" "e.ns"] (core/shard-namespaces nses [2 3])))
+      (is (= ["c.ns" "f.ns"] (core/shard-namespaces nses [3 3])))))
+
+  (testing "all shards together cover all namespaces"
+    (let [nses ["ns1" "ns2" "ns3" "ns4" "ns5"]
+          all-sharded (into [] cat [(core/shard-namespaces nses [1 3])
+                                    (core/shard-namespaces nses [2 3])
+                                    (core/shard-namespaces nses [3 3])])]
+      (is (= (sort nses) (sort all-sharded)))))
+
+  (testing "single shard returns all namespaces sorted"
+    (let [nses ["c" "a" "b"]]
+      (is (= ["a" "b" "c"] (core/shard-namespaces nses [1 1])))))
+
+  (testing "empty namespaces"
+    (is (= [] (core/shard-namespaces [] [1 3]))))
+
+  (testing "fewer namespaces than shards"
+    (let [nses ["a" "b"]]
+      (is (= ["a"] (core/shard-namespaces nses [1 3])))
+      (is (= ["b"] (core/shard-namespaces nses [2 3])))
+      (is (= []    (core/shard-namespaces nses [3 3]))))))
+
+(deftest shard-integration-test
+  (let [make-nses (fn [shard-spec]
+                    (delay
+                      (cond-> (into [] cat [["c.ns" "a.ns"] ["b.ns" "d.ns" "e.ns"]])
+                        shard-spec (core/shard-namespaces shard-spec))))]
+
+    (testing "sharding with delay+cond-> matches create function pattern"
+      (is (= ["a.ns" "d.ns"] @(make-nses [1 3])))
+      (is (= ["b.ns" "e.ns"] @(make-nses [2 3])))
+      (is (= ["c.ns"]        @(make-nses [3 3]))))
+
+    (testing "nil shard-spec preserves original order (no sharding)"
+      (is (= ["c.ns" "a.ns" "b.ns" "d.ns" "e.ns"] @(make-nses nil))))
+
+    (testing "all shards cover all namespaces"
+      (is (= (sort ["c.ns" "a.ns" "b.ns" "d.ns" "e.ns"])
+             (sort (concat @(make-nses [1 3])
+                           @(make-nses [2 3])
+                           @(make-nses [3 3]))))))))
