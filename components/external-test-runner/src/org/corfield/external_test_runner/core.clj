@@ -303,7 +303,7 @@
     (println "\nIgnoring" (count @test-cljs*) "cljc/cljs test namespace(s) — no supported ClojureScript test runner found.")))
 
 (defn sort-by-seed [seed coll]
-  (case seed
+  (case (int seed)
     -1 coll       ;; Rely on default ordering (OS dependent)
     0 (sort coll) ;; Rely on alphabetic ordering
 
@@ -386,17 +386,16 @@
                                          projects-to-test color-mode)
                 maybe-cljs? (not (contains? #{:none :ignore} (:cljs-test-runner test-opts)))]
             (println run-message)
-            (println "Random seed:" random-seed)
             (when (seq @test-nses*)
               (when (and maybe-cljs? (seq @test-cljs*))
                 (println "\nRunning Clojure tests..."))
-              (println "Namespaces:" (str/join " " @test-nses*))
+              (println (str "Namespace order (seed: " random-seed "):") (str/join ", " @test-nses*))
               (java-test-runner all-paths setup-fn teardown-fn process-ns color-mode
                                 project-name test-nses* options-as-jvm java-opts))
             (when (and maybe-cljs? (seq @test-cljs*))
               (when (seq @test-nses*)
                 (println "\nRunning ClojureScript tests..."))
-              (println "Namespaces:" (str/join " " @test-cljs*))
+              (println (str "Namespace order (seed: " random-seed "):") (str/join ", " @test-cljs*))
               (cljs-test-runner all-paths setup-fn teardown-fn project-dir
                                 test-cljs* shadow* java-opts test-opts)))))
       test-runner-contract/ExternalTestRunner

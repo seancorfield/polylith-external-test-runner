@@ -1,8 +1,10 @@
-{:deps {org.clojure/clojure {:mvn/version "1.12.4"}
+{:deps {org.clojure/clojure {:mvn/version "1.12.5"}
 
         polylith-external-test-runner.bases/external-test-runner-cli {:local/root "../../bases/external-test-runner-cli"}
         polylith-external-test-runner.components/external-test-runner {:local/root "../../components/external-test-runner"}
         polylith-external-test-runner.components/util {:local/root "../../components/util"}}
 
  :aliases {:test {:extra-paths ["test"]
-                  :extra-deps  {polylith/clj-poly {:mvn/version "0.3.32"}}}}}
+                  :extra-deps  {olical/cljs-test-runner {:mvn/version "3.8.1"}
+                                thheller/shadow-cljs {:mvn/version "3.4.11"}
+                                polylith/clj-poly {:mvn/version "0.3.32"}}}}}

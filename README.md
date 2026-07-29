@@ -13,6 +13,8 @@ As of v0.8.0, can run ClojureScript tests if either:
 
 See also the `:cljs-test-runner` option in **Test Configuration** below.
 
+As of v0.9.0, the order of test namespaces is randomized by default, controlled via a random seed.
+
 ## Usage
 
 Ensure you are using a recent version Polylith that supports
@@ -165,7 +167,7 @@ ORG_CORFIELD_EXTERNAL_TEST_RUNNER="{:include-src-dir true}" clojure -M:poly test
 ### Randomized test ordering via `:random-seed`
 
 If you are using an earlier version of Polylith External Test Runner, then this
-is important. As of v0.8.1 the order of test namespaces are randomized.
+is important. As of v0.9.0 the order of test namespaces are randomized.
 If you (unknowingly) rely on the order of how test namespaces are loaded, this 
 might cause your tests to fail with the introduction of the newer version of
 this test runner. In order to control this we have a few options.

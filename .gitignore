@@ -24,3 +24,4 @@ projects/runner/shadow-cljs.edn
 projects/runner/.shadow-cljs/
 projects/runner/out/node-tests.js
 .rebel_readline_history
+outdated.txt
