@@ -302,6 +302,17 @@
     :else
     (println "\nIgnoring" (count @test-cljs*) "cljc/cljs test namespace(s) — no supported ClojureScript test runner found.")))
 
+(defn sort-by-seed [seed coll]
+  (case seed
+    -1 coll       ;; Rely on default ordering (OS dependent)
+    0 (sort coll) ;; Rely on alphabetic ordering
+
+    ;; Else, randomize
+    (let [rng (java.util.Random. seed)
+          next-long (fn [_] (.nextLong rng))]
+      (->> (sort coll)
+           (sort-by next-long)))))
+
 (defn create
   [{:keys [workspace project test-settings] :as _all}]
   (let [env-opts  (-> (System/getenv "ORG_CORFIELD_EXTERNAL_TEST_RUNNER")
@@ -317,6 +328,8 @@
           (doseq [[k v] test-opts]
             (println " " k "=>" v))
           (println ""))
+        random-seed (or (:random-seed test-opts)
+                        (rand-int Integer/MAX_VALUE))
         {:keys [bases components]} workspace
         {:keys [namespaces paths project-dir projects-to-test]
          project-name :name} project
@@ -333,12 +346,15 @@
         test-nses*     (->> [(brick-test-namespaces test-opts clj-namespace? (into components bases) bricks-to-test)
                              (project-test-namespaces test-opts clj-namespace? project-name projects-to-test namespaces)]
                             (into [] cat)
+                            (sort-by-seed random-seed)
                             (delay))
         shadow*        (delay (when shadow?
                                 (read-shadow-cljs project-name projects-to-test project-dir)))
         test-cljs*     (->> [(brick-test-namespaces test-opts cljs-namespace? (into components bases) bricks-to-test)
                              (project-test-namespaces test-opts cljs-namespace? project-name projects-to-test namespaces)]
                             (into [] cat)
+                            (sort-by-seed random-seed)
+                            (vec)
                             (delay))
         java-opts      (or (System/getenv "POLY_TEST_JVM_OPTS")
                            (System/getProperty "poly.test.jvm.opts"))
@@ -370,14 +386,17 @@
                                          projects-to-test color-mode)
                 maybe-cljs? (not (contains? #{:none :ignore} (:cljs-test-runner test-opts)))]
             (println run-message)
+            (println "Random seed:" random-seed)
             (when (seq @test-nses*)
               (when (and maybe-cljs? (seq @test-cljs*))
                 (println "\nRunning Clojure tests..."))
+              (println "Namespaces:" (str/join " " @test-nses*))
               (java-test-runner all-paths setup-fn teardown-fn process-ns color-mode
                                 project-name test-nses* options-as-jvm java-opts))
             (when (and maybe-cljs? (seq @test-cljs*))
               (when (seq @test-nses*)
                 (println "\nRunning ClojureScript tests..."))
+              (println "Namespaces:" (str/join " " @test-cljs*))
               (cljs-test-runner all-paths setup-fn teardown-fn project-dir
                                 test-cljs* shadow* java-opts test-opts)))))
       test-runner-contract/ExternalTestRunner
