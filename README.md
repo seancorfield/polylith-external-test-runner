@@ -200,7 +200,7 @@ to `-1` via `workspace.edn`:
  :test-configs {
    :external-test-runner {
      :org.corfield/external-test-runner {:random-seed -1}
-                                         :create-test-runner [org.corfield.external-test-runner.interface/create]}
+     :create-test-runner [org.corfield.external-test-runner.interface/create]}}
 }
 ```
 
