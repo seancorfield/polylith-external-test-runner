@@ -162,6 +162,55 @@ ORG_CORFIELD_EXTERNAL_TEST_RUNNER="{:include-src-dir true}" clojure -M:poly test
 
 > Note: you can also use the environment variable to override `:include-src-dir` or `:focus` from the `:test-configs` setting, via a simple merge.
 
+### Randomized test ordering via `:random-seed`
+
+If you are using an earlier version of Polylith External Test Runner, then this
+is important. As of v0.8.1 the order of test namespaces are randomized.
+If you (unknowingly) rely on the order of how test namespaces are loaded, this 
+might cause your tests to fail with the introduction of the newer version of
+this test runner. In order to control this we have a few options.
+
+To get started in the green, you can run the tests with the previous ordering:
+```
+ORG_CORFIELD_EXTERNAL_TEST_RUNNER="{:random-seed -1}" clojure -M:poly test
+```
+
+The value of `:random-seed` controls how test namespaces are sorted:
+
+- `-1` means no sorting other than what was happening before. 
+- `0` means alphabetic sorting, should only be slightly different than the default ordering and might be easier to debug.
+- Any other value is completely random and might highlight certain hidden dependencies.
+
+On every run the value of `:random-seed` is printed, as well as the ordering of
+all the namespaces that are loaded. Should something unexpected happen on another
+machine (e.g. on CI or from a collegeau's), this seed will help you replicate
+this exact ordering. Let's say the tests are failing with random seed `12345`,
+the following command allows you to replicate this:
+
+```
+ORG_CORFIELD_EXTERNAL_TEST_RUNNER="{:random-seed 12345}" clojure -M:poly test
+```
+
+If you find yourself in a situation where the tests don't succeed anymore after
+upgrading to this new version, we recommend to temporarily set the `:random-seed`
+to `-1` via `workspace.edn`:
+
+```clojure
+{
+ :test-configs {
+   :external-test-runner {
+     :org.corfield/external-test-runner {:random-seed -1}
+     :create-test-runner [org.corfield.external-test-runner.interface/create]}}
+}
+```
+
+This will make sure all environments use the same `:random-seed`. Note that the 
+env var `ORG_CORFIELD_EXTERNAL_TEST_RUNNER` still can override this. Make sure
+you eventually are able to run without this setting as this indicates your 
+namespaces have subtle dependencies between each other that might affect the 
+correctness of Polylith's working.
+ 
+
 ## License & Copyright
 
 External test runner copyright (c) 2022-2026, Sean Corfield,
