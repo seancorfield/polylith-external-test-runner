@@ -1,6 +1,6 @@
 # Changes
 
-* v0.9.0 -- 2026-07-29
+* v0.9.0 61086fb -- 2026-07-29
   * Randomize the order of test namespaces by default, controlled via a random seed, via PR [#24](https://github.com/seancorfield/polylith-external-test-runner/pull/24) from [@jeroenvandijk](https://github.com/jeroenvandijk).
   * Address [#20](https://github.com/seancorfield/polylith-external-test-runner/issues/20) by adding `:shadow-optimize` option to control whether Shadow-cljs uses `compile` (unoptimized dev build, the default, equivalent to `:dev`) or `release` (Closure-optimized production build, via `:release`).
 
