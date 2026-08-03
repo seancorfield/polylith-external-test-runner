@@ -2,6 +2,8 @@
 
 An external (subprocess) test runner for [Polylith](https://github.com/polyfy/polylith).
 
+> [My AI Usage Statement](https://corfield.org/blog/2026/08/02/ai/)
+
 Avoids classloader, daemon thread, and memory usage issues
 by running tests in a (Java) subprocess with only Clojure itself as a
 dependency.
