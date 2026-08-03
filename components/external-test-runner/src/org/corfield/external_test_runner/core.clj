@@ -163,7 +163,7 @@
 
 (defn- java-test-runner
   [all-paths setup-fn teardown-fn process-ns color-mode
-   project-name test-nses* options-as-jvm java-opts]
+   project-name test-nses* options-as-jvm java-opts report-err]
   (let [path-sep  (System/getProperty "path.separator")
         classpath (str/join path-sep
                             (->> all-paths
@@ -182,12 +182,14 @@
                         (seq options-as-jvm)
                         (into options-as-jvm))
                       (into ["-cp" classpath
-                             "clojure.main" "-m" process-ns])
+                             "clojure.main"
+                             "--report" report-err
+                             "-m" process-ns])
                       (into test-args))]
     (run-cmd nil java-cmd "External test runner failed" {:process-ns process-ns})))
 
 (defn- olical-test-runner
-  [all-paths test-nses* java-opts test-opts]
+  [all-paths test-nses* java-opts test-opts report-err]
   (let [path-sep  (System/getProperty "path.separator")
         classpath (str/join path-sep (cons (ns->src colorizer-ns) all-paths))
         src-fn    (if (:include-src-dir test-opts)
@@ -214,12 +216,14 @@
                         java-opts
                         (into java-opts))
                       (into ["-cp" classpath
-                             "clojure.main" "-m" "cljs-test-runner.main"])
+                             "clojure.main"
+                             "--report" report-err
+                             "-m" "cljs-test-runner.main"])
                       (into test-args))]
     (run-cmd nil java-cmd "cljs-test-runner failed" {})))
 
 (defn- shadow-compile
-  [project-dir build all-paths test-nses java-opts test-opts]
+  [project-dir build all-paths test-nses java-opts test-opts report-err]
   (let [path-sep  (System/getProperty "path.separator")
         ;; we run shadow in projects/*/ (i.e., project-dir), so we need to
         ;; adjust the classpath entries to be relative to that:
@@ -234,7 +238,9 @@
                          java-opts
                          (into java-opts))
                        (into ["-cp" classpath
-                              "clojure.main" "-m" "shadow.cljs.devtools.cli"]))
+                              "clojure.main"
+                              "--report" report-err
+                              "-m" "shadow.cljs.devtools.cli"]))
         optimize   (if (= :release (:shadow-optimize test-opts))
                      "release"
                      "compile")
@@ -245,11 +251,13 @@
                      only-nses (into only-nses))]
     (run-cmd project-dir cmd "Shadow-cljs compilation failed" {:build build})))
 
-(defmulti shadow-test (fn [_ {:keys [target]} _ _ _ _ _] target))
+(defmulti shadow-test (fn [_ {:keys [target]} _ _ _ _ _ _] target))
 
 (defmethod shadow-test :node-test
-  [project-dir {:keys [output-to autorun]} build all-paths test-nses java-opts test-opts]
-  (shadow-compile project-dir build all-paths test-nses java-opts test-opts)
+  [project-dir {:keys [output-to autorun]} build all-paths test-nses java-opts
+   test-opts report-err]
+  (shadow-compile project-dir build all-paths test-nses java-opts test-opts
+                  report-err)
   (when-not autorun
     (run-cmd project-dir
              ["node" output-to]
@@ -257,21 +265,24 @@
              {:output-to output-to})))
 
 (defmethod shadow-test :karma
-  [project-dir {:keys [output-to]} build all-paths test-nses java-opts test-opts]
-  (shadow-compile project-dir build all-paths test-nses java-opts test-opts)
+  [project-dir {:keys [output-to]} build all-paths test-nses java-opts test-opts
+   report-err]
+  (shadow-compile project-dir build all-paths test-nses java-opts test-opts
+                  report-err)
   (run-cmd project-dir
            ["npx" "karma" "start" "--single-run"]
            "Shadow-cljs Karma test failed"
            {:output-to output-to}))
 
 (defmethod shadow-test :default
-  [_ {:keys [target]} build _ _ _ _]
+  [_ {:keys [target]} build _ _ _ _ _]
   (throw (ex-info (str "Unsupported Shadow-cljs test target: " target
                        " in selected build: " build)
                   {:target target :build build})))
 
 (defn- cljs-test-runner
-  [all-paths setup-fn teardown-fn project-dir test-cljs* shadow* java-opts test-opts]
+  [all-paths setup-fn teardown-fn project-dir test-cljs* shadow* java-opts test-opts
+   report-err]
   (when setup-fn
     (println "\nsetup-fn not supported for ClojureScript tests, ignoring" setup-fn))
   (when teardown-fn
@@ -281,7 +292,8 @@
     (let [build-key (-> test-opts :shadow-build (or :test))
           build-map (-> @shadow* :builds build-key)]
       (if (:target build-map)
-        (shadow-test project-dir build-map build-key all-paths @test-cljs* java-opts test-opts)
+        (shadow-test project-dir build-map build-key all-paths @test-cljs*
+                     java-opts test-opts report-err)
         (throw (ex-info (str "Unable to determine Shadow-cljs build or target in: " project-dir)
                         {:builds  (-> @shadow* :builds (keys))
                          :targets (->> @shadow* :builds (vals) (map :target))}))))
@@ -289,7 +301,7 @@
     ;; if no runner is specified, we still check for it on the classpath:
     (and (contains? #{nil :olical} (:cljs-test-runner test-opts))
          (seq (filter #(re-find #"olical" %) all-paths)))
-    (olical-test-runner all-paths test-cljs* java-opts test-opts)
+    (olical-test-runner all-paths test-cljs* java-opts test-opts report-err)
 
     (contains? #{:shadow :shadow-cljs} (:cljs-test-runner test-opts))
     (throw (ex-info "Shadow-cljs test runner specified but no shadow-cljs.edn file found in project directory."
@@ -330,6 +342,7 @@
           (println ""))
         random-seed (or (:random-seed test-opts)
                         (rand-int Integer/MAX_VALUE))
+        report-err  (:report test-opts "file")
         {:keys [bases components]} workspace
         {:keys [namespaces paths project-dir projects-to-test]
          project-name :name} project
@@ -391,12 +404,14 @@
                 (println "\nRunning Clojure tests..."))
               (println (str "Namespace order (seed: " random-seed "):") (str/join ", " @test-nses*))
               (java-test-runner all-paths setup-fn teardown-fn process-ns color-mode
-                                project-name test-nses* options-as-jvm java-opts))
+                                project-name test-nses* options-as-jvm java-opts
+                                report-err))
             (when (and maybe-cljs? (seq @test-cljs*))
               (when (seq @test-nses*)
                 (println "\nRunning ClojureScript tests..."))
               (println (str "Namespace order (seed: " random-seed "):") (str/join ", " @test-cljs*))
               (cljs-test-runner all-paths setup-fn teardown-fn project-dir
-                                test-cljs* shadow* java-opts test-opts)))))
+                                test-cljs* shadow* java-opts test-opts
+                                report-err)))))
       test-runner-contract/ExternalTestRunner
       (external-process-namespace [_] my-runner-ns))))
