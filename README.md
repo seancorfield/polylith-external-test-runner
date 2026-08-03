@@ -31,7 +31,7 @@ make this test-runner available:
 
 ```clojure
 io.github.seancorfield/polylith-external-test-runner
-{:git/tag "v0.9.0" :git/sha "61086fb" -- supports Polylith 0.3.0 and later
+{:git/tag "v0.9.1" :git/sha "db3d338" -- supports Polylith 0.3.0 and later
  :deps/root "projects/runner"}
 ```
 

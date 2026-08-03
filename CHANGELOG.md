@@ -1,6 +1,6 @@
 # Changes
 
-* v0.9.1 -- 2026-08-03
+* v0.9.1 db3d338 -- 2026-08-03
   * Add `:report` option to pass through to `--report` when running the external (Clojure) processes. Default is `"file"` per `clojure.main` but can be set to `"stderr"` to see exception stack traces in the console, for example for CI.
   * Fix intermittent ns sort failure (due to non-determinism of initial implementation).
 
