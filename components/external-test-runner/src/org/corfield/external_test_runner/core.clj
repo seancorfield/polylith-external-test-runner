@@ -321,9 +321,9 @@
 
     ;; Else, randomize
     (let [rng (java.util.Random. seed)
-          next-long (fn [_] (.nextLong rng))]
+          coll-keys (zipmap coll (repeatedly #(.nextLong rng)))]
       (->> (sort coll)
-           (sort-by next-long)))))
+           (sort-by coll-keys)))))
 
 (defn create
   [{:keys [workspace project test-settings] :as _all}]
